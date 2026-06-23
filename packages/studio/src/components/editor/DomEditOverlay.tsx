@@ -1,6 +1,7 @@
 import { memo, useMemo, useRef, useState, type RefObject } from "react";
 import { useMountEffect } from "../../hooks/useMountEffect";
 import { type DomEditSelection } from "./domEditing";
+import { useMarqueeGestures } from "./marqueeCommit";
 import { resolveDomEditGroupOverlayRect } from "./domEditOverlayGeometry";
 import {
   type BlockedMoveState,
@@ -67,8 +68,10 @@ interface DomEditOverlayProps {
   gridSpacing?: number;
   recordingState?: GestureRecordingState;
   onToggleRecording?: () => void;
+  onMarqueeSelect?: (selections: DomEditSelection[], additive: boolean) => void;
 }
 
+// fallow-ignore-next-line complexity
 export const DomEditOverlay = memo(function DomEditOverlay({
   iframeRef,
   activeCompositionPath,
@@ -88,9 +91,12 @@ export const DomEditOverlay = memo(function DomEditOverlay({
   onGroupPathOffsetCommit,
   onBoxSizeCommit,
   onRotationCommit,
+  onMarqueeSelect,
 }: DomEditOverlayProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const onMarqueeSelectRef = useRef(onMarqueeSelect);
+  onMarqueeSelectRef.current = onMarqueeSelect;
 
   const selectionShapeStyles = (() => {
     const fallback = {
@@ -238,6 +244,15 @@ export const DomEditOverlay = memo(function DomEditOverlay({
     snapGuidesRef,
   });
 
+  const marquee = useMarqueeGestures({
+    iframeRef,
+    overlayRef,
+    activeCompositionPathRef,
+    onMarqueeSelectRef,
+    selectionRef,
+    gestures,
+  });
+
   const selectionKey = useMemo(() => {
     if (!selection) return "none";
     return `${selection.sourceFile}:${selection.id ?? selection.selector ?? selection.label}:${selection.selectorIndex ?? 0}`;
@@ -306,6 +321,36 @@ export const DomEditOverlay = memo(function DomEditOverlay({
 
     const target = event.target as HTMLElement | null;
     if (target?.closest('[data-dom-edit-selection-box="true"]')) return;
+
+    // Start marquee if clicking on empty canvas (no element under pointer)
+    if (!hoverSelectionRef.current && onMarqueeSelectRef.current && compRect.width > 0) {
+      const overlayEl = overlayRef.current;
+      if (overlayEl) {
+        const oRect = overlayEl.getBoundingClientRect();
+        const cx = event.clientX - oRect.left;
+        const cy = event.clientY - oRect.top;
+        const inComp =
+          cx >= compRect.left &&
+          cx <= compRect.left + compRect.width &&
+          cy >= compRect.top &&
+          cy <= compRect.top + compRect.height;
+        if (inComp) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressNextOverlayMouseDownRef.current = true;
+          (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+          marquee.marqueeRef.current = {
+            startX: cx,
+            startY: cy,
+            currentX: cx,
+            currentY: cy,
+            pointerId: event.pointerId,
+            pastThreshold: false,
+          };
+          return;
+        }
+      }
+    }
   };
 
   const handleBoxClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -332,15 +377,16 @@ export const DomEditOverlay = memo(function DomEditOverlay({
       className="absolute inset-0 z-10 pointer-events-auto outline-none"
       tabIndex={-1}
       aria-label="Composition canvas"
+      style={marquee.marqueeRef.current?.pastThreshold ? { cursor: "crosshair" } : undefined}
       onPointerDownCapture={(event) =>
         focusDomEditOverlayElement(event.currentTarget as FocusableDomEditOverlay)
       }
       onPointerDown={handleOverlayPointerDown}
       onMouseDown={handleOverlayMouseDown}
-      onPointerMove={gestures.onPointerMove}
+      onPointerMove={marquee.onPointerMove}
       onPointerLeave={() => onCanvasPointerLeaveRef.current()}
-      onPointerUp={gestures.onPointerUp}
-      onPointerCancel={() => gestures.clearPointerState(selectionRef)}
+      onPointerUp={marquee.onPointerUp}
+      onPointerCancel={marquee.onPointerCancel}
     >
       {hoverSelection && hoverRect && compRect.width > 0 && (
         <div
@@ -496,6 +542,18 @@ export const DomEditOverlay = memo(function DomEditOverlay({
             }}
           />
         ))}
+      {marquee.marqueeRect && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute border border-dashed border-studio-accent bg-studio-accent/10"
+          style={{
+            left: marquee.marqueeRect.left,
+            top: marquee.marqueeRect.top,
+            width: marquee.marqueeRect.width,
+            height: marquee.marqueeRect.height,
+          }}
+        />
+      )}
       <GridOverlay
         visible={gridVisible}
         spacing={gridSpacing}

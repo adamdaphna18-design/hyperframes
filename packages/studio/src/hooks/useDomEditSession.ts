@@ -123,6 +123,7 @@ export function useDomEditSession({
     buildDomSelectionForTimelineElement,
     handleTimelineElementSelect,
     refreshDomEditSelectionFromPreview,
+    applyMarqueeSelection,
   } = useDomSelection({
     projectId,
     activeCompPath,
@@ -429,6 +430,7 @@ export function useDomEditSession({
     buildDomSelectionFromTarget,
     buildDomSelectionForTimelineElement,
     updateDomEditHoverSelection,
+    applyMarqueeSelection,
     resolveImportedFontAsset,
     setAgentModalOpen,
     setAgentPromptSelectionContext,
