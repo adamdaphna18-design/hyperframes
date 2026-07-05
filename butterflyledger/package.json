@@ -2,6 +2,22 @@
   "name": "butterflyledger",
   "version": "0.1.0",
   "description": "A zero-knowledge, SHA-256 blockchain ledger for every action an AI agent takes, grounded in butterfly-effect (chaos) theory.",
+  "keywords": [
+    "ai-agent",
+    "audit",
+    "blockchain",
+    "butterfly-effect",
+    "chaos-theory",
+    "ledger",
+    "schnorr",
+    "sha256",
+    "zero-knowledge",
+    "zkp"
+  ],
+  "license": "MIT",
+  "bin": {
+    "butterflyledger": "./src/cli.ts"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -11,26 +27,13 @@
       "types": "./src/index.ts"
     }
   },
-  "bin": {
-    "butterflyledger": "./src/cli.ts"
-  },
   "scripts": {
     "test": "bun test",
     "demo": "bun run src/demo.ts",
     "cli": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "blockchain",
-    "ledger",
-    "zero-knowledge",
-    "zkp",
-    "schnorr",
-    "sha256",
-    "ai-agent",
-    "butterfly-effect",
-    "chaos-theory",
-    "audit"
-  ],
-  "license": "MIT"
+  "devDependencies": {
+    "@types/bun": "^1.3.14"
+  }
 }

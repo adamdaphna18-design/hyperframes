@@ -1,5 +1,6 @@
 import { sha256Fields } from "./hash.js";
 import { butterflySignature } from "./butterfly.js";
+import { EMPTY_STATE_ROOT } from "./contract.js";
 import { type Transaction, serializeBody } from "./transaction.js";
 import { merkleRoot } from "./merkle.js";
 
@@ -16,6 +17,8 @@ export interface BlockHeader {
   readonly height: number;
   readonly previousHash: string;
   readonly merkleRoot: string;
+  /** Commitment to all contract programs + state after this block (contract.ts). */
+  readonly stateRoot: string;
   readonly timestamp: number;
   /** Proof-of-work nonce found during sealing. */
   readonly nonce: number;
@@ -37,6 +40,7 @@ export function headerDigest(header: BlockHeader): string {
     header.height,
     header.previousHash,
     header.merkleRoot,
+    header.stateRoot,
     header.timestamp,
     header.difficulty,
     header.nonce,
@@ -71,6 +75,8 @@ export interface SealOptions {
   readonly previousHash: string;
   readonly timestamp: number;
   readonly difficulty: number;
+  /** Contract state root after this block; defaults to the empty-state commitment. */
+  readonly stateRoot?: string;
   /** Safety cap on pow iterations; throws if exceeded. */
   readonly maxNonce?: number;
 }
@@ -83,12 +89,14 @@ export interface SealOptions {
  */
 export function sealBlock(transactions: readonly Transaction[], opts: SealOptions): Block {
   const merkleRootHash = transactionsRoot(transactions);
+  const stateRoot = opts.stateRoot ?? EMPTY_STATE_ROOT;
   const maxNonce = opts.maxNonce ?? 5_000_000;
   for (let nonce = 0; nonce <= maxNonce; nonce++) {
     const header: BlockHeader = {
       height: opts.height,
       previousHash: opts.previousHash,
       merkleRoot: merkleRootHash,
+      stateRoot,
       timestamp: opts.timestamp,
       nonce,
       difficulty: opts.difficulty,

@@ -2,7 +2,7 @@
 
 ## A Zero-Knowledge, SHA-256 Blockchain Ledger for Every Action an AI Agent Takes, Grounded in Butterfly-Effect Theory
 
-**Version 1.0 · July 2026**
+**Version 1.1 · July 2026**
 
 > This document supersedes the original _Butterfly Effect Engine_ whitepaper PDF, whose
 > source file shipped a CID-keyed font with no Unicode mapping and could not be recovered.
@@ -169,7 +169,8 @@ record ──▶ mempool ──seal──▶ block_n ──chain──▶ valida
 
 1. **Record.** `record(tx)` verifies the transaction id and its zero-knowledge
    authorship proof _at ingress_; unverifiable actions never enter the mempool.
-2. **Seal.** `sealPending(timestamp)` computes the Merkle root over the batch, grinds
+2. **Seal.** `sealPending(timestamp)` computes the Merkle root over the batch, advances
+   the contract state machine by the batch and derives the **state root** (§5.6), grinds
    the proof-of-work nonce until `SHA256(header)` has the required number of leading
    zero hex digits, derives the butterfly signature from the sealed hash, and appends
    the block to the chain.
@@ -284,6 +285,44 @@ The sealed hash then seeds the chaotic map of §2.3, and the resulting butterfly
 signature is stored in the block and checked during validation — a second, independent
 binding of each block to the trajectory of the chain.
 
+### 5.6 Smart contracts: on-chain policy programs
+
+Contracts on an audit ledger are **policy programs**: deterministic rules that decide
+whether an agent action is allowed and update on-chain state (budgets, quotas,
+counters). ButterflyLedger executes them in a purpose-built stack VM whose design is
+dictated by one requirement — every validator must reproduce every state transition,
+bit for bit, forever:
+
+- **Total determinism.** Integer-only (`bigint`) arithmetic; no floats, no clock, no
+  randomness, no host calls. Twenty-one opcodes: stack ops, arithmetic, comparisons,
+  logic, conditional jumps, `LOAD`/`STORE` against per-contract state, `ARG` for
+  invocation inputs, and `HALT`/`REJECT` verdicts.
+- **Gas metering.** Every instruction costs gas (state access priced above stack
+  work); an invocation that exceeds its limit traps and rejects. A buggy or malicious
+  program can never stall sealing or validation.
+- **Fail-closed state.** Writes land in a draft that commits only on accept — a
+  rejected or trapped invocation cannot mutate on-chain state.
+
+**Lifecycle.** A contract is _deployed as a transaction_ (`contract.deploy`, payload =
+the canonical program serialisation); its id is the domain-separated SHA-256 of that
+code, so code and identity are inseparable. Invocations (`contract.invoke`) execute at
+`record()` ingress against the speculative tip state — **a rejected action never
+enters the mempool** — and are re-executed by every validator.
+
+**State roots.** Each block header commits to
+`stateRoot = SHA256(sorted contracts: id ∥ code ∥ sorted state)` after applying the
+block. The state root sits inside the proof-of-work-sealed header, so contract state
+inherits the full butterfly cascade: forge one stored counter, or one sealed
+invocation's arguments, and `validate()` — which replays every deploy and invoke from
+genesis and requires each sealed root to be reproducible — breaks at exactly that
+block. This is the standard blockchain notion of a verifiable state machine, scaled
+to the audit use-case.
+
+_Example._ A spending-cap policy (11 instructions) keeps `spent += amount` while
+`spent + amount ≤ cap` and `REJECT`s beyond it. Deployed on-chain, it turns "the agent
+must not spend more than its budget" from a promise in application code into a rule
+the ledger itself enforces and every verifier re-checks.
+
 ---
 
 ## 6. Security Analysis
@@ -301,6 +340,8 @@ discrete logarithms in the 2048-bit group.
 | Forge an action "as" another agent                                 | Schnorr soundness — requires the victim's discrete log                                                                                                                         | Ingress check and full validation                      |
 | Replay an agent's old action                                       | `(agentId, nonce)` sits inside the signed body, so a verbatim replay collides on its id; a modified replay is a new body needing a fresh proof only the key holder can produce | Duplicate-id rejection at `record()` ingress           |
 | Rewrite history wholesale                                          | Must re-mine PoW for every downstream block                                                                                                                                    | Cost asymmetry; cumulative work                        |
+| Violate an on-chain policy (e.g. overspend a budget)               | Contract VM executes at `record()` ingress; rejected actions never enter the mempool                                                                                           | Ingress rejection; validators re-execute every invoke  |
+| Forge sealed contract state or invocation results                  | State root inside the PoW-sealed header; `validate()` replays all contract executions from genesis                                                                             | State-root mismatch at the forged block                |
 | Learn an agent's secret from its proofs                            | Zero-knowledge property — transcripts are simulatable                                                                                                                          | N/A (information-theoretic goal)                       |
 | Learn a committed payload value                                    | Pedersen perfect hiding                                                                                                                                                        | N/A (information-theoretic goal)                       |
 | Cross-context hash replay (tx hash as block hash, leaf as node, …) | Global domain separation (§5.1)                                                                                                                                                | Verification fails by construction                     |
@@ -328,6 +369,9 @@ than production-hardened:
 - **Commitment proofs.** Pedersen openings are currently all-or-nothing. Range proofs
   (Bulletproofs) and homomorphic sum checks ("total spend this epoch < budget, amounts
   hidden") are the highest-value extension.
+- **Contract VM scope.** The policy VM is intentionally minimal: no cross-contract
+  calls, no events, and integer-only state. It is a governance layer, not a
+  general-purpose execution environment.
 - **Storage.** JSON snapshot persistence; a production system would use an append-only
   segment store with checkpointing.
 - **Key management.** Agent secrets are raw scalars supplied by the caller; rotation,
@@ -347,20 +391,22 @@ src/zkp.ts           Schnorr NIZK authorship proofs; Pedersen commitments
 src/merkle.ts        Merkle root, inclusion proofs, verification
 src/butterfly.ts     Chaos engine: seeding, logistic map, signature, divergence
 src/transaction.ts   Action bodies, ids, ZK-signed transactions
+src/vm.ts            Deterministic gas-metered stack VM for contracts
+src/contract.ts      Contract engine: deploy/invoke, state, state roots
 src/block.ts         Headers, PoW sealing, self-verification
 src/ledger.ts        Chain assembly, validation, inclusion proofs, snapshots
-src/cli.ts           keygen · record · seal · verify · show · prove · tamper · butterfly
+src/cli.ts           keygen · record · seal · verify · show · prove · tamper · deploy · invoke · contracts · butterfly
 src/demo.ts          End-to-end narrative walkthrough
 ```
 
-**Verification status.** 35 tests across the crypto, Merkle, chaos, and ledger layers
+**Verification status.** 51 tests across the crypto, Merkle, chaos, VM/contract, and ledger layers
 (soundness and binding negative-tests included) pass; the end-to-end demo records
 plain and committed actions from two agents, seals two linked blocks, proves inclusion,
 validates the chain, then forges one historical byte and shows validation fail at
 block #0 while measuring `λ > 0` divergence on the live block hash.
 
 ```bash
-bun install && bun test        # 35/35
+bun install && bun test        # 51/51
 bun run src/demo.ts            # the full story, including the cascade
 ```
 

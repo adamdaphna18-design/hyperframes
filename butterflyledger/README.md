@@ -35,7 +35,9 @@ src/
   merkle.ts        Binary Merkle tree + inclusion proofs
   butterfly.ts     Chaos engine: logistic map, butterfly signature, divergence
   transaction.ts   AI-action transaction (ZK-signed, deterministic)
-  block.ts         Block header, Merkle root, proof-of-work sealing
+  vm.ts            Deterministic gas-metered stack VM for smart contracts
+  contract.ts      Smart-contract engine: deploy/invoke, state roots
+  block.ts         Block header, Merkle + state roots, proof-of-work sealing
   ledger.ts        The chain: record → seal → validate → prove, cascade detection
   cli.ts           Command-line interface
   demo.ts          End-to-end walkthrough
@@ -91,6 +93,32 @@ bun run src/cli.ts tamper --tx <id> --payload "forged"
 
 # measure the chaos directly (logistic map, Lyapunov exponent)
 bun run src/cli.ts butterfly
+```
+
+## Smart contracts: policy as code
+
+Contracts on an audit ledger are **policy programs**: deterministic, gas-metered bytecode (a tiny stack VM — no floats, no clock, no host calls) deployed _as transactions_. A contract's id is the SHA-256 of its code; its state lives on-chain; and every block header commits to a **state root** over all programs + state, so contract state gets the same butterfly-cascade protection as the transactions themselves.
+
+- **Enforcement at ingress** — `contract.invoke` actions execute against the current state when recorded; a rejected action (e.g. exceeding a spending cap) never enters the mempool.
+- **Verifiability by re-execution** — `validate()` replays every deploy/invoke from genesis and requires each sealed state root to be reproducible. Forge a sealed invocation and the chain breaks at that exact block.
+
+```ts
+// Spending-cap policy: spent += amount, only while spent + amount ≤ 800
+const program: Instruction[] = [
+  { op: "LOAD", arg: "spent" }, { op: "ARG", arg: "0" }, { op: "ADD" },
+  { op: "DUP" }, { op: "PUSH", arg: "800" }, { op: "GT" },
+  { op: "JZ", arg: "8" }, { op: "REJECT" },
+  { op: "STORE", arg: "spent" }, { op: "PUSH", arg: "1" }, { op: "HALT" },
+];
+ledger.record(createTransaction(agent, { action: "contract.deploy",  payload: deployPayload(program), … }));
+ledger.record(createTransaction(agent, { action: "contract.invoke", payload: invokePayload(id, [499n]), … })); // ok
+ledger.record(createTransaction(agent, { action: "contract.invoke", payload: invokePayload(id, [400n]), … })); // throws: policy REJECT
+```
+
+```bash
+bun run src/cli.ts deploy   --secret <hex> --program cap.json
+bun run src/cli.ts invoke   --secret <hex> --contract <id> --args 300
+bun run src/cli.ts contracts
 ```
 
 ## Zero-knowledge layer

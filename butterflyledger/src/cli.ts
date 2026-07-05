@@ -5,6 +5,14 @@ import { agentKeyFromSecret, generateAgentKey } from "./zkp.js";
 import { createTransaction, verifyTransaction } from "./transaction.js";
 import { measureDivergence, seedFromHash } from "./butterfly.js";
 import { hexToBigInt } from "./hash.js";
+import {
+  CONTRACT_DEPLOY_ACTION,
+  CONTRACT_INVOKE_ACTION,
+  contractIdOf,
+  invokePayload,
+  parseProgram,
+  serializeProgram,
+} from "./contract.js";
 
 /**
  * ButterflyLedger command-line interface.
@@ -63,6 +71,11 @@ Commands:
                                  Emit a Merkle inclusion proof for a transaction
   tamper --tx <id> --payload <text> [--file <path>]
                                  Mutate a sealed transaction to show the cascade
+  deploy --secret <hex> --program <file.json> [--file <path>]
+                                 Deploy a smart contract (policy program) on-chain
+  invoke --secret <hex> --contract <id> --args <csv> [--file <path>]
+                                 Invoke a contract; rejected actions never enter the mempool
+  contracts [--file <path>]      List deployed contracts and their current state
   butterfly                      Demonstrate sensitive dependence (chaos) numerically
 
 Global:
@@ -177,10 +190,15 @@ function main(): number {
       }
       const before = ledger.validate();
       // Reach into the stored snapshot and forge the payload.
+      const forgedPayload = flags.payload;
       const snapshot = ledger.snapshot();
-      const target = snapshot.blocks[at.height]!.transactions[at.index]!;
-      const forged = { ...target, payload: flags.payload };
-      snapshot.blocks[at.height]!.transactions[at.index] = forged;
+      const block = snapshot.blocks[at.height]!;
+      snapshot.blocks[at.height] = {
+        ...block,
+        transactions: block.transactions.map((t, i) =>
+          i === at.index ? { ...t, payload: forgedPayload } : t,
+        ),
+      };
       const tampered = Ledger.restore(snapshot);
       const after = tampered.validate();
       console.log(`before tamper: valid=${before.valid}`);
@@ -189,6 +207,74 @@ function main(): number {
       );
       console.log(`reason: ${after.reason}`);
       console.log("(the forged ledger was NOT saved)");
+      return 0;
+    }
+
+    case "deploy": {
+      if (!flags.secret || !flags.program) {
+        console.error("deploy requires --secret and --program <file.json>");
+        return 1;
+      }
+      const source = readFileSync(flags.program, "utf8");
+      const parsed = parseProgram(source);
+      if ("error" in parsed) {
+        console.error(`invalid program: ${parsed.error}`);
+        return 1;
+      }
+      const serialized = serializeProgram(parsed.program);
+      const ledger = loadLedger(file);
+      const key = agentKeyFromSecret(hexToBigInt(flags.secret));
+      const tx = createTransaction(key, {
+        action: CONTRACT_DEPLOY_ACTION,
+        payload: serialized,
+        timestamp: flags.timestamp ? Number(flags.timestamp) : ledger.height + 1,
+        nonce: flags.nonce ? Number(flags.nonce) : ledger.mempool.length,
+      });
+      ledger.record(tx);
+      saveLedger(file, ledger);
+      console.log(`deployed contract ${contractIdOf(serialized)}`);
+      console.log(`  tx ${tx.id} (pending seal)`);
+      return 0;
+    }
+
+    case "invoke": {
+      if (!flags.secret || !flags.contract || flags.args === undefined) {
+        console.error("invoke requires --secret, --contract and --args <csv>");
+        return 1;
+      }
+      const args =
+        flags.args.length === 0 ? [] : flags.args.split(",").map((a) => BigInt(a.trim()));
+      const ledger = loadLedger(file);
+      const key = agentKeyFromSecret(hexToBigInt(flags.secret));
+      const tx = createTransaction(key, {
+        action: CONTRACT_INVOKE_ACTION,
+        payload: invokePayload(flags.contract, args),
+        timestamp: flags.timestamp ? Number(flags.timestamp) : ledger.height + 1,
+        nonce: flags.nonce ? Number(flags.nonce) : ledger.mempool.length,
+      });
+      try {
+        ledger.record(tx); // contract policy runs here — rejection throws
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        return 1;
+      }
+      saveLedger(file, ledger);
+      console.log(`invoked ${flags.contract.slice(0, 16)}… — accepted`);
+      console.log(`  tx ${tx.id} (pending seal)`);
+      const view = ledger.inspectContract(flags.contract);
+      if (view) console.log(`  state ${JSON.stringify(view.state)}`);
+      return 0;
+    }
+
+    case "contracts": {
+      const ledger = loadLedger(file);
+      const ids = ledger.listContracts();
+      console.log(`${ids.length} contract(s) deployed`);
+      for (const id of ids) {
+        const view = ledger.inspectContract(id)!;
+        console.log(`  ${id}`);
+        console.log(`    state ${JSON.stringify(view.state)}`);
+      }
       return 0;
     }
 

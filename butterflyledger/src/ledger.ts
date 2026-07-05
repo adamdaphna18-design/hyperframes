@@ -1,4 +1,5 @@
 import { type Block, sealBlock, verifyBlockSelf } from "./block.js";
+import { ContractEngine } from "./contract.js";
 import { type MerkleProof, merkleProof, verifyMerkleProof } from "./merkle.js";
 import { type Transaction, serializeBody, verifyTransaction } from "./transaction.js";
 
@@ -30,6 +31,10 @@ export class Ledger {
   private readonly blocks: Block[] = [];
   private readonly pending: Transaction[] = [];
   private readonly difficulty: number;
+  /** Contract state as of the sealed chain tip. */
+  private engine = new ContractEngine();
+  /** Contract state as of tip + mempool (speculative, for ingress policy checks). */
+  private speculative = new ContractEngine();
 
   constructor(options: LedgerOptions = {}) {
     this.difficulty = options.difficulty ?? 2;
@@ -65,6 +70,12 @@ export class Ledger {
     if (this.pending.some((p) => p.id === tx.id) || this.locate(tx.id) !== undefined) {
       throw new Error(`refusing to record transaction ${tx.id}: duplicate (replay rejected)`);
     }
+    // Smart-contract policy enforcement at ingress: deploys and invokes run
+    // against the speculative state; a rejected action never enters the mempool.
+    const result = this.speculative.apply(tx);
+    if (!result.ok) {
+      throw new Error(`refusing to record transaction ${tx.id}: ${result.error}`);
+    }
     this.pending.push(tx);
   }
 
@@ -82,14 +93,25 @@ export class Ledger {
     // Snapshot the mempool: the block must own its own array, since we clear
     // `this.pending` immediately below.
     const batch = [...this.pending];
+    // Advance the sealed contract state by the batch. Every transaction already
+    // executed successfully against the speculative engine at ingress, and the
+    // VM is deterministic, so this replay cannot fail.
+    for (const tx of batch) {
+      const result = this.engine.apply(tx);
+      if (!result.ok) {
+        throw new Error(`contract state divergence while sealing ${tx.id}: ${result.error}`);
+      }
+    }
     const block = sealBlock(batch, {
       height: this.blocks.length,
       previousHash: this.tipHash,
       timestamp,
       difficulty: this.difficulty,
+      stateRoot: this.engine.stateRoot(),
     });
     this.blocks.push(block);
     this.pending.length = 0;
+    this.speculative = this.engine.clone();
     return block;
   }
 
@@ -101,6 +123,9 @@ export class Ledger {
    */
   validate(): ValidationResult {
     let previousHash = GENESIS_PARENT;
+    // Contract execution is part of consensus: re-run every deploy/invoke from
+    // genesis and require each block's sealed state root to be reproducible.
+    const replay = new ContractEngine();
     for (let h = 0; h < this.blocks.length; h++) {
       const block = this.blocks[h]!;
       if (block.height !== h) {
@@ -116,6 +141,13 @@ export class Ledger {
         if (!verifyTransaction(tx)) {
           return fail(h, `transaction ${tx.id} has an invalid authorship proof`);
         }
+        const applied = replay.apply(tx);
+        if (!applied.ok) {
+          return fail(h, `contract execution failed for ${tx.id}: ${applied.error}`);
+        }
+      }
+      if (replay.stateRoot() !== block.stateRoot) {
+        return fail(h, "contract state root mismatch: sealed state is not reproducible");
       }
       previousHash = block.hash;
     }
@@ -172,12 +204,34 @@ export class Ledger {
     };
   }
 
-  /** Rehydrate a ledger from a previously captured snapshot. */
+  /**
+   * Rehydrate a ledger from a previously captured snapshot. Contract state is
+   * not stored — it is re-derived by replaying the chain, which is exactly the
+   * property `validate()` checks. Replay errors are tolerated here (a tampered
+   * snapshot must still be restorable so validation can report the damage).
+   */
   static restore(snapshot: LedgerSnapshot): Ledger {
     const ledger = new Ledger({ difficulty: snapshot.difficulty });
     ledger.blocks.push(...snapshot.blocks);
-    ledger.pending.push(...snapshot.pending);
+    for (const block of snapshot.blocks) {
+      for (const tx of block.transactions) ledger.engine.apply(tx);
+    }
+    ledger.speculative = ledger.engine.clone();
+    for (const tx of snapshot.pending) {
+      ledger.speculative.apply(tx);
+      ledger.pending.push(tx);
+    }
     return ledger;
+  }
+
+  /** Ids of all deployed contracts, as seen from tip + mempool. */
+  listContracts(): string[] {
+    return this.speculative.list();
+  }
+
+  /** Current state of a deployed contract (tip + mempool view). */
+  inspectContract(id: string): { id: string; state: Record<string, string> } | undefined {
+    return this.speculative.inspect(id);
   }
 }
 
