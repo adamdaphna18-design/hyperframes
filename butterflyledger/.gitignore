@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# default ledger output produced by the CLI
+butterfly-ledger.json
