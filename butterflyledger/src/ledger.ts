@@ -50,10 +50,20 @@ export class Ledger {
     return this.blocks;
   }
 
-  /** Queue a verified transaction for inclusion in the next block. */
+  /**
+   * Queue a verified transaction for inclusion in the next block.
+   *
+   * Replay protection: a transaction id commits to `(agentId, nonce)` inside
+   * the signed body, so re-submitting a sealed or pending action verbatim is
+   * rejected here at ingress. (A *modified* replay is a new body and therefore
+   * needs a fresh proof only the key holder can produce.)
+   */
   record(tx: Transaction): void {
     if (!verifyTransaction(tx)) {
       throw new Error(`refusing to record transaction ${tx.id}: invalid authorship proof`);
+    }
+    if (this.pending.some((p) => p.id === tx.id) || this.locate(tx.id) !== undefined) {
+      throw new Error(`refusing to record transaction ${tx.id}: duplicate (replay rejected)`);
     }
     this.pending.push(tx);
   }

@@ -56,6 +56,21 @@ describe("ledger", () => {
     expect(ledger.chain[1]!.previousHash).toBe(ledger.chain[0]!.hash);
   });
 
+  test("replaying a pending transaction is refused", () => {
+    const ledger = new Ledger({ difficulty: 1 });
+    const t = tx("a", "b", 0);
+    ledger.record(t);
+    expect(() => ledger.record(t)).toThrow(/replay/);
+  });
+
+  test("replaying an already-sealed transaction is refused", () => {
+    const ledger = new Ledger({ difficulty: 1 });
+    const t = tx("a", "b", 0);
+    ledger.record(t);
+    ledger.sealPending(1);
+    expect(() => ledger.record(t)).toThrow(/replay/);
+  });
+
   test("recording an unverifiable transaction is refused", () => {
     const ledger = new Ledger({ difficulty: 1 });
     const good = tx("a", "b", 0);
