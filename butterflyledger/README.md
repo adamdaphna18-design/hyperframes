@@ -6,22 +6,22 @@ As autonomous AI agents take real-world actions (calling tools, spending money, 
 
 - **Every AI action is a transaction** on an append-only, hash-chained ledger.
 - **SHA-256 everywhere** — block hashes, Merkle roots, transaction ids, and the Fiat–Shamir challenge inside every proof.
-- **Zero-knowledge authorship** — an agent proves *it* authored an action without ever revealing its private key (Schnorr NIZK), and can hide sensitive payloads behind Pedersen commitments.
+- **Zero-knowledge authorship** — an agent proves _it_ authored an action without ever revealing its private key (Schnorr NIZK), and can hide sensitive payloads behind Pedersen commitments.
 - **The butterfly effect is the security model** — the ledger is treated as a deterministic chaotic system: tamper with one historical byte and the SHA-256 avalanche cascades through every downstream block, exactly like a 1e-12 perturbation blowing up a chaotic trajectory.
 
-> The whitepaper this was built from could not be text-extracted (its PDF ships a CID font with no Unicode mapping). This implementation reconstructs the concept — "ButterflyLedger: a blockchain ledger for every transaction an action-AI makes, with zero-knowledge proofs and SHA-256 security, utilizing butterfly-effect theory" — as a working, tested reference library.
+> **Whitepaper:** see [WHITEPAPER.md](./WHITEPAPER.md) — a full rewrite of the original _Butterfly Effect Engine_ PDF (which shipped a CID font with no Unicode mapping and could not be recovered), grounded in this reference implementation.
 
-## The core idea: a ledger *is* a chaotic system
+## The core idea: a ledger _is_ a chaotic system
 
 Chaos theory studies deterministic systems with **sensitive dependence on initial conditions** — the butterfly effect. A hash chain has exactly this property:
 
-| Chaos theory | ButterflyLedger |
-| --- | --- |
-| Nonlinear map `xₙ₊₁ = f(xₙ)` | `blockHashₙ₊₁ = SHA256(headerₙ₊₁ ‖ blockHashₙ)` |
-| Initial condition `x₀` | Genesis / previous block hash |
+| Chaos theory                            | ButterflyLedger                                                |
+| --------------------------------------- | -------------------------------------------------------------- |
+| Nonlinear map `xₙ₊₁ = f(xₙ)`            | `blockHashₙ₊₁ = SHA256(headerₙ₊₁ ‖ blockHashₙ)`                |
+| Initial condition `x₀`                  | Genesis / previous block hash                                  |
 | Sensitive dependence (butterfly effect) | SHA-256 avalanche — 1 flipped bit ⇒ ~half the output bits flip |
-| Positive Lyapunov exponent ⇒ chaos | Any tamper diverges the whole downstream chain |
-| Deterministic yet unpredictable | Recompute the chain exactly, but you can't shortcut it |
+| Positive Lyapunov exponent ⇒ chaos      | Any tamper diverges the whole downstream chain                 |
+| Deterministic yet unpredictable         | Recompute the chain exactly, but you can't shortcut it         |
 
 `src/butterfly.ts` makes this **measurable**: it seeds the logistic map `x → 3.99·x·(1−x)` (deep in the chaotic regime) from a block hash and reports the Lyapunov exponent and how fast a minimal perturbation diverges — the same fingerprint that makes the ledger tamper-evident.
 
@@ -95,7 +95,7 @@ bun run src/cli.ts butterfly
 
 ## Zero-knowledge layer
 
-**Schnorr NIZK (proof of authorship).** An agent's identity is a public key `y = G^x` in a 2048-bit prime-order group. To record an action it produces a non-interactive proof of knowledge of `x`, bound to the action via a Fiat–Shamir challenge (`c = SHA256(G, y, r, message)`). The verifier checks `G^s == r · y^c` — learning *that* the agent authored the action and **nothing** about `x`. The proof doubles as an unforgeable signature.
+**Schnorr NIZK (proof of authorship).** An agent's identity is a public key `y = G^x` in a 2048-bit prime-order group. To record an action it produces a non-interactive proof of knowledge of `x`, bound to the action via a Fiat–Shamir challenge (`c = SHA256(G, y, r, message)`). The verifier checks `G^s == r · y^c` — learning _that_ the agent authored the action and **nothing** about `x`. The proof doubles as an unforgeable signature.
 
 **Pedersen commitments (hidden payloads).** For confidential actions (e.g. a payment amount), the agent publishes `C = G^m · H^r` instead of the raw value. `C` is perfectly hiding and computationally binding; the value can be opened or proven later without ever appearing on-chain. `H` is derived by a nothing-up-my-sleeve hash so nobody knows `logₘ(H)`.
 
