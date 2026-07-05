@@ -95,6 +95,42 @@ bun run src/cli.ts tamper --tx <id> --payload "forged"
 bun run src/cli.ts butterfly
 ```
 
+## SDK: drop-in agent instrumentation
+
+Wrap any agent tool and every call is **policy-checked before execution** and **recorded with a ZK authorship proof** — no changes to your agent logic:
+
+```ts
+import { Ledger, ButterflyClient, agentKeyFromEnv } from "butterflyledger";
+
+const client = new ButterflyClient({ ledger: new Ledger(), key: agentKeyFromEnv() });
+const { id: capId } = client.deployContract(spendingCapProgram); // on-chain policy
+
+const transferFunds = client.wrapTool("transfer_funds", callBankApi, {
+  policy: { contractId: capId, args: (input) => [BigInt(input.amount)] },
+});
+
+await transferFunds({ vendor: "acme", amount: 600 }); // checked, executed, recorded
+await transferFunds({ vendor: "evil", amount: 700 }); // throws — the bank API is never called
+```
+
+Inputs/outputs land on-chain as SHA-256 hashes (attest without disclosing); sensitive numbers can be Pedersen-committed via `recordToolCall({ confidential: { amount: 499n } })`, with openings returned for off-chain custody.
+
+**LangChain.js**: `ButterflyCallbackHandler` implements the callback-handler surface structurally (no LangChain dependency to version-pin) — pass it via `callbacks: [handler]` and tool start/end/error events are enforced + recorded automatically, with nested-run parent linkage:
+
+```ts
+import { ButterflyCallbackHandler } from "butterflyledger";
+
+const handler = new ButterflyCallbackHandler({
+  client,
+  policies: {
+    transfer_funds: { contractId: capId, args: (input) => [BigInt(JSON.parse(input).amount)] },
+  },
+});
+const agent = new AgentExecutor({ tools, callbacks: [handler] });
+```
+
+Full walkthrough: `bun run examples/finance-agent.ts` — deploy policy, blocked violation, confidential payroll, tamper attempt caught.
+
 ## Smart contracts: policy as code
 
 Contracts on an audit ledger are **policy programs**: deterministic, gas-metered bytecode (a tiny stack VM — no floats, no clock, no host calls) deployed _as transactions_. A contract's id is the SHA-256 of its code; its state lives on-chain; and every block header commits to a **state root** over all programs + state, so contract state gets the same butterfly-cascade protection as the transactions themselves.
