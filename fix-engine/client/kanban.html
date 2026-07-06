@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fix Engine — board</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 14px system-ui, sans-serif; background: #0e0f12; color: #e8e8ea; }
+      header { padding: 14px 18px; border-bottom: 1px solid #222; display: flex; gap: 14px; align-items: baseline; }
+      header h1 { font-size: 15px; margin: 0; }
+      header .hint { font-size: 12px; opacity: 0.55; }
+      .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 18px; align-items: start; }
+      .col h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; margin: 0 0 10px; }
+      .card { background: #17181c; border: 1px solid #26272d; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+      .card .note { font-weight: 600; margin-bottom: 6px; white-space: pre-wrap; }
+      .card .meta { font-size: 11px; opacity: 0.55; word-break: break-all; }
+      .card .report { margin-top: 8px; font-size: 12px; background: #0e2a17; border: 1px solid #1c4a2c; border-radius: 6px; padding: 6px 8px; white-space: pre-wrap; }
+      .card .id { font-size: 10px; opacity: 0.4; }
+      button.done { margin-top: 8px; background: #1c4a2c; color: #cfebd6; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; font: 600 12px system-ui; }
+      .empty { opacity: 0.35; font-size: 12px; padding: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🔧 Fix Engine</h1>
+      <span class="hint">Alt+click in your app to file · say <b>"fix"</b> to the agent to process · only you move a card to Done</span>
+    </header>
+    <div class="board">
+      <div class="col"><h2 id="h-inbox">Inbox</h2><div id="inbox"></div></div>
+      <div class="col"><h2 id="h-in_progress">In&nbsp;progress</h2><div id="in_progress"></div></div>
+      <div class="col"><h2 id="h-done">Done</h2><div id="done"></div></div>
+    </div>
+    <script>
+      var ENDPOINT = location.origin;
+
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
+        });
+      }
+
+      function cardHtml(c) {
+        var loc = c.context && (c.context.sourceFile || c.context.area || c.context.route) || "";
+        var doneBtn = c.status === "in_progress"
+          ? '<button class="done" data-id="' + c.id + '">Mark done ✓</button>'
+          : "";
+        var report = c.report ? '<div class="report">' + esc(c.report) + "</div>" : "";
+        return (
+          '<div class="card"><div class="note">' + esc(c.note) + "</div>" +
+          '<div class="meta">' + esc(loc) + " · " + esc(c.context ? c.context.tag : "") + "</div>" +
+          report + doneBtn +
+          '<div class="id">' + esc(c.id) + "</div></div>"
+        );
+      }
+
+      function render(cards) {
+        var cols = { inbox: [], in_progress: [], done: [] };
+        cards.forEach(function (c) { (cols[c.status] || cols.inbox).push(c); });
+        ["inbox", "in_progress", "done"].forEach(function (col) {
+          var host = document.getElementById(col);
+          host.innerHTML = cols[col].length
+            ? cols[col].map(cardHtml).join("")
+            : '<div class="empty">— empty —</div>';
+          document.getElementById("h-" + col).dataset.count = cols[col].length;
+          document.getElementById("h-" + col).textContent =
+            (col === "in_progress" ? "In progress" : col[0].toUpperCase() + col.slice(1)) +
+            " (" + cols[col].length + ")";
+        });
+      }
+
+      function refresh() {
+        fetch(ENDPOINT + "/api/queue")
+          .then(function (r) { return r.json(); })
+          .then(render)
+          .catch(function () {});
+      }
+
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("button.done");
+        if (!btn) return;
+        fetch(ENDPOINT + "/api/move", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: btn.dataset.id, status: "done", actor: "human" }),
+        }).then(refresh);
+      });
+
+      refresh();
+      setInterval(refresh, 2000);
+    </script>
+  </body>
+</html>
