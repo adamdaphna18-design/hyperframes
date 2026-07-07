@@ -20,6 +20,8 @@ export interface MetaContext {
   brand?: string;
   /** The he/en counterpart path for hreflang, if a translated page exists. */
   altPath?: string;
+  /** Absolute/relative URL of a generated branded OG image (overrides a photo). */
+  ogImage?: string;
 }
 
 /** Best-effort city extraction from a "street, city, region" address. */
@@ -63,7 +65,8 @@ function tag(attr: "property" | "name", key: string, content: string): string {
 export function headMeta(business: Business, ctx: MetaContext = {}): string {
   const s = ctx.locale ?? stringsFor("en");
   const desc = seoDescription(business, ctx);
-  const image = business.images[0];
+  // Prefer the generated branded share card over a raw photo.
+  const image = ctx.ogImage ?? business.images[0];
   const base = ctx.baseUrl?.replace(/\/+$/, "");
   const canonical = base && ctx.path ? `${base}/${ctx.path}` : undefined;
 

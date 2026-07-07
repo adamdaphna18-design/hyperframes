@@ -40,6 +40,9 @@ export interface Palette {
   hue: number;
   accent: string;
   accentDeep: string;
+  /** Darkened accent guaranteed to meet WCAG AA (4.5:1) on a white background,
+   *  for text/links/icons — low lightness so even bright hues stay legible. */
+  accentInk: string;
   ink: string;
   bg: string;
   surface: string;
@@ -52,6 +55,7 @@ export function paletteFor(business: Business): Palette {
     hue,
     accent: `hsl(${hue} 82% 56%)`,
     accentDeep: `hsl(${hue} 74% 42%)`,
+    accentInk: `hsl(${hue} 68% 25%)`,
     ink: "#12141a",
     bg: `hsl(${hue} 30% 97%)`,
     surface: "#ffffff",

@@ -32,17 +32,39 @@ export function schemaType(category: string | undefined): string {
   return "LocalBusiness";
 }
 
+const FOOD_TYPES = new Set(["Restaurant", "CafeOrCoffeeShop", "BarOrPub", "Bakery"]);
+const KNOWN_CUISINES =
+  /\b(italian|french|japanese|chinese|thai|indian|mexican|greek|turkish|lebanese|israeli|mediterranean|american|korean|vietnamese|spanish|vegan|vegetarian|kosher|pizza|sushi|burger|seafood|steak|bbq)\b/i;
+
+/** Cuisines for a food business, from the OSM `cuisine` tag or the category. */
+export function cuisineOf(business: Business): string[] {
+  const raw = business.tags?.cuisine;
+  if (raw) {
+    return raw
+      .split(/[;,]/)
+      .map((c) => c.trim().replace(/_/g, " "))
+      .filter(Boolean);
+  }
+  const fromCategory = business.category?.match(KNOWN_CUISINES);
+  return fromCategory ? [fromCategory[0]!] : [];
+}
+
 /** Build the JSON-LD object (also reusable for a WordPress mu-plugin). */
 export function localBusinessJsonLd(
   business: Business,
   s: Strings = stringsFor("en"),
 ): Record<string, unknown> {
+  const type = schemaType(business.category);
   const node: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": schemaType(business.category),
+    "@type": type,
     name: business.name,
     description: business.description ?? taglineFor(business, s),
   };
+  if (FOOD_TYPES.has(type)) {
+    const cuisines = cuisineOf(business);
+    if (cuisines.length) node.servesCuisine = cuisines;
+  }
   if (business.website) node.url = business.website;
   if (business.images.length) node.image = business.images.slice(0, 6);
   if (business.phone) node.telephone = business.phone;

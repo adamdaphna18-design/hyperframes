@@ -22,6 +22,8 @@ interface ParsedArgs {
   geocodeEmail?: string;
   baseUrl?: string;
   brand?: string;
+  gaId?: string;
+  plausible?: string;
   help: boolean;
 }
 
@@ -102,6 +104,12 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--brand":
         if (argv[++i]) args.brand = argv[i];
         break;
+      case "--ga-id":
+        if (argv[++i]) args.gaId = argv[i];
+        break;
+      case "--plausible":
+        if (argv[++i]) args.plausible = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -146,6 +154,8 @@ Options:
       --geocode-email <e>  Contact string for Nominatim's User-Agent
       --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
       --brand <name>    Brand suffix appended to page <title>s
+      --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event
+      --plausible <domain>  Inject the Plausible analytics snippet
   -h, --help            Show this help
 
 Output:
@@ -207,6 +217,8 @@ async function main(): Promise<void> {
       geocodeEmail: args.geocodeEmail,
       baseUrl: args.baseUrl,
       brand: args.brand,
+      analytics:
+        args.gaId || args.plausible ? { ga4: args.gaId, plausible: args.plausible } : undefined,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)

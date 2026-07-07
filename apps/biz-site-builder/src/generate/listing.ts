@@ -56,7 +56,7 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
       .filter(Boolean)
       .join(" ");
     return `<article class="card"${e.locale ? ` lang="${e.locale}"` : ""}>
-      <div class="ava" style="background:linear-gradient(135deg, ${p.accent}, ${p.accentDeep})">${esc(initials(b.name))}</div>
+      <div class="ava" style="background:linear-gradient(135deg, ${p.accentDeep}, #12141a)">${esc(initials(b.name))}</div>
       <div class="body">
         <h3>${esc(b.name)}</h3>
         <div class="meta">${[esc(b.category ?? ""), esc(b.address ?? "")].filter(Boolean).join(" · ")}</div>
@@ -107,8 +107,8 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
       .tag.warn { background: #3a2a12; color: #f4c079; }
       .tag.lang { background: #1e2a44; color: #a9c5ff; }
       .links { display: flex; gap: 8px; flex-wrap: wrap; }
-      .pill { font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #4f7cff; color: #fff; }
-      .pill.wp { background: #21759b; color: #fff; }
+      .pill { font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #3552cc; color: #fff; }
+      .pill.wp { background: #1d6a8f; color: #fff; }
       .pill.ghost { background: transparent; border: 1px solid #384056; color: #cdd6f4; }
       .muted { opacity: .4; }
     </style>
@@ -124,8 +124,10 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
         <div class="stat"><b>${needs.length}</b><span>${esc(s.neededWebsite)}</span></div>
         <div class="stat"><b>${has.length}</b><span>${esc(s.alreadyHad)}</span></div>
       </div>
+      <main>
       ${section(s.sectionBuilt, needs)}
       ${section(s.sectionHasSite, has)}
+      </main>
     </div>
   </body>
 </html>

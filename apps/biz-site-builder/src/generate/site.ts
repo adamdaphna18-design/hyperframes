@@ -6,6 +6,7 @@ import { jsonLdScripts } from "./schema.ts";
 import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
+import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
 
 export interface SiteOptions {
   /** Absolute site root for canonical/OG URLs, e.g. https://dir.example. */
@@ -14,6 +15,10 @@ export interface SiteOptions {
   path?: string;
   /** Brand suffix for the <title>. */
   brand?: string;
+  /** URL of the generated branded OG image for this page. */
+  ogImage?: string;
+  /** Analytics providers to inject (GA4 / Plausible). */
+  analytics?: AnalyticsOptions;
 }
 
 /**
@@ -32,6 +37,7 @@ export function generateSite(
     baseUrl: opts.baseUrl,
     path: opts.path,
     brand: opts.brand,
+    ogImage: opts.ogImage,
   };
   const p = paletteFor(business);
   const tagline = taglineFor(business, s);
@@ -82,8 +88,8 @@ export function generateSite(
     .join("\n          ");
 
   const hero = business.images[0]
-    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.65)), url('${esc(business.images[0])}');`
-    : `background: radial-gradient(120% 120% at 30% 20%, ${p.accent}, ${p.accentDeep});`;
+    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${esc(business.images[0])}');`
+    : `background: radial-gradient(120% 120% at 30% 20%, ${p.accentDeep}, #0a0a0f);`;
 
   return `<!doctype html>
 <html lang="${s.lang}" dir="${s.dir}">
@@ -93,11 +99,13 @@ export function generateSite(
     <title>${esc(seoTitle(business, meta))}</title>
     ${headMeta(business, meta)}
     ${jsonLdScripts(business, s, { baseUrl: opts.baseUrl, path: opts.path })}
+    ${opts.analytics ? analyticsSnippet(business, opts.analytics) : ""}
     ${hasMap(business) ? leafletAssets() : ""}
     <style>
       :root {
         --accent: ${p.accent};
         --accent-deep: ${p.accentDeep};
+        --accent-ink: ${p.accentInk};
         --ink: ${p.ink};
         --bg: ${p.bg};
         --surface: ${p.surface};
@@ -110,7 +118,7 @@ export function generateSite(
         background: var(--bg);
         line-height: 1.55;
       }
-      a { color: var(--accent-deep); }
+      a { color: var(--accent-ink); }
       .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
       header.hero {
         min-height: 62vh; display: flex; align-items: flex-end; color: #fff;
@@ -134,7 +142,7 @@ export function generateSite(
       }
       .btn:hover { transform: translateY(-2px); }
       .btn-primary { background: #fff; color: var(--ink); }
-      .btn-ghost { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.4); }
+      .btn-ghost { background: rgba(0,0,0,.34); color: #fff; border: 1px solid rgba(255,255,255,.6); }
       section { padding: 64px 0; }
       section h2 { font-size: clamp(24px, 4vw, 34px); margin-bottom: 24px; letter-spacing: -0.01em; }
       .about p { font-size: 18px; max-width: 62ch; }
@@ -150,17 +158,17 @@ export function generateSite(
       blockquote {
         background: var(--bg); border-radius: 16px; padding: 22px; border: 1px solid rgba(0,0,0,.06);
       }
-      blockquote .stars { color: var(--accent-deep); letter-spacing: 2px; margin-bottom: 8px; }
+      blockquote .stars { color: var(--accent-ink); letter-spacing: 2px; margin-bottom: 8px; }
       blockquote cite { display: block; margin-top: 12px; font-style: normal; font-weight: 600; opacity: .7; }
       .contact ul { list-style: none; display: grid; gap: 14px; max-width: 560px; }
       .contact li { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: baseline; }
-      .contact li span:first-child { font-weight: 700; opacity: .55; text-transform: uppercase; font-size: 13px; letter-spacing: .06em; }
+      .contact li span:first-child { font-weight: 700; color: #565d6b; text-transform: uppercase; font-size: 13px; letter-spacing: .06em; }
       table.hours { border-collapse: collapse; font-size: 15px; }
       table.hours th { text-align: start; font-weight: 600; padding: 2px 18px 2px 0; opacity: .85; }
       table.hours td { padding: 2px 0; }
       table.hours .closed { opacity: .5; }
-      footer { padding: 40px 0; color: rgba(0,0,0,.5); font-size: 14px; border-top: 1px solid rgba(0,0,0,.08); }
-      footer .built { opacity: .8; }
+      footer { padding: 40px 0; color: #4b5160; font-size: 14px; border-top: 1px solid rgba(0,0,0,.08); }
+      footer .built { color: #565d6b; }
     </style>
   </head>
   <body>

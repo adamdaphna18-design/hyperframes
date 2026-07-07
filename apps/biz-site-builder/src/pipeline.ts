@@ -7,6 +7,8 @@ import { resolveLocale } from "./i18n/locale.ts";
 import { loadAndMerge } from "./sources/index.ts";
 import { detectWebsite, verifyLive } from "./website/detect.ts";
 import { generateSite, siteSlug } from "./generate/site.ts";
+import { ogImageFilename, ogImageSvg } from "./generate/ogimage.ts";
+import type { AnalyticsOptions } from "./generate/analytics.ts";
 import { generateVideo, videoSlug } from "./generate/video.ts";
 import { generateIndexHtml, generateIndexJson, type ListingEntry } from "./generate/listing.ts";
 import { generateRobots, generateSitemap } from "./generate/sitemap.ts";
@@ -50,6 +52,8 @@ export interface BuildOptions {
   baseUrl?: string;
   /** Brand suffix appended to page titles. */
   brand?: string;
+  /** Analytics providers (GA4 / Plausible) to inject into every page. */
+  analytics?: AnalyticsOptions;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
@@ -149,10 +153,15 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
         result.sitePath = await rt.step(
           `site/${d.business.id}`,
           async () => {
+            const ogName = ogImageFilename(d.business);
+            await writeFile(join(sitesDir, ogName), ogImageSvg(d.business, s), "utf8");
+            const ogPath = `sites/${ogName}`;
             const html = generateSite(d.business, s, {
               baseUrl: opts.baseUrl,
               path: `sites/${slug}.html`,
               brand: opts.brand,
+              ogImage: opts.baseUrl ? `${opts.baseUrl.replace(/\/+$/, "")}/${ogPath}` : ogPath,
+              analytics: opts.analytics,
             });
             await writeFile(join(sitesDir, `${slug}.html`), html, "utf8");
             return `sites/${slug}.html`;
@@ -169,6 +178,7 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
               strings: s,
               baseTheme: opts.wpBaseTheme,
               livePlugins: opts.livePlugins,
+              analytics: opts.analytics,
               fetchImpl: opts.fetchImpl,
             });
             const dir = join(sitesDir, bundle.slug);

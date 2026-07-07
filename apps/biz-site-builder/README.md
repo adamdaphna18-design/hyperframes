@@ -96,7 +96,15 @@ scraper (which _reads_ this same data):
 - **schema.org BreadcrumbList** — Home → Category → Business, on the static site (WordPress gets
   breadcrumbs from Yoast).
 - **Open Graph + Twitter Cards** ([ogp.me](https://ogp.me) + Twitter Cards) — `og:*` and `twitter:*`
-  tags for rich link previews; `og:image`/`twitter:image` from the first photo.
+  tags for rich link previews.
+- **Dynamic branded share image** — a deterministic 1200×630 **SVG** OG card per business (brand
+  gradient + initials badge + name + category + star rating), used as `og:image`. No headless browser
+  at build time; rasterise to PNG offline for legacy platforms if needed.
+- **`servesCuisine`** — added to LocalBusiness JSON-LD for food businesses, from the OSM `cuisine` tag
+  or the category.
+- **Analytics** (opt-in) — inject **GA4** (`--ga-id`, fires a `view_item` event with
+  business/category/city) or **Plausible** (`--plausible`), into the static `<head>` and a WordPress
+  `mu-plugin`.
 - **Keyword-rich titles & descriptions** — `{name} — {category} in {city} | {brand}` (`--brand`),
   a `<meta name="description">` from the profile, `robots: index,follow`, `canonical`, and `hreflang`
   (en/he) when a base URL is set.
@@ -149,14 +157,26 @@ Workflow tool and its open re-implementations (odw, open-dynamic-workflows): `st
     --geocode-email <e>   Contact string for Nominatim's User-Agent
     --base-url <url>      Host URL for sitemap.xml / robots.txt / canonical + OG URLs
     --brand <name>        Brand suffix appended to page titles
+    --ga-id <id>          Inject Google Analytics 4 (view_item event)
+    --plausible <domain>  Inject the Plausible analytics snippet
 -h, --help
 ```
+
+## Quality gate — accessibility
+
+`bun run verify:a11y` builds the sample sites and runs **axe-core**
+([dequelabs/axe-core](https://github.com/dequelabs/axe-core)) over every generated page in headless
+Chromium, failing on any **critical** or **serious** violation. The report logic
+(`src/verify/axe.ts`) is unit-tested; the browser runner loads Playwright + axe-core dynamically, so
+it's a dev/CI gate, not a build-time dependency. The generated palette is tuned to pass WCAG AA
+contrast for every brand hue.
 
 ## Development
 
 ```bash
-bun test          # 101 tests: sources, detection, generators, WordPress, workflow, i18n, pipeline
+bun test           # 147 tests: sources, detection, generators, WordPress, workflow, i18n, SEO, a11y, pipeline
 bun run typecheck
+bun run verify:a11y  # accessibility gate (needs playwright + axe-core devDeps)
 ```
 
 Deterministic by design (no `Date.now`, no unseeded randomness, no render-time fetches in generated
