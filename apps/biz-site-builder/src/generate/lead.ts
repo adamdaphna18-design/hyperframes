@@ -8,7 +8,9 @@ import type { Business, WebsiteStatus } from "../types.ts";
  */
 export function scoreLead(business: Business, status: WebsiteStatus): number {
   let score = 40;
-  if (!status.hasWebsite) score += 30; // no owned site → the opportunity
+  if (!status.hasWebsite)
+    score += 30; // no owned site → the opportunity
+  else if (status.weakBuilder) score += 12; // existing site on a locked-in DIY builder → still a lead
 
   const rating = business.rating ?? 0;
   if (rating >= 4.5) score += 15;

@@ -97,6 +97,13 @@ A business "has a website" only if it lists a **real, owned** URL. Facebook / In
 Google-Maps / Linktree links count as _not_ a website — those businesses still get one built. With
 `--verify-live`, listed URLs are HTTP-checked and **dead links** fall back to needing a site.
 
+With `--verify-live`, the fetched page is also run through a **tech-stack detector**
+(`src/website/techstack.ts`, WhatWeb / webanalyze / site-platform-detector style): signature-based
+identification of the CMS/builder (WordPress, Wix, Shopify, Squarespace, Webflow, Joomla, Drupal, …)
+plus auxiliary tech (WooCommerce, jQuery, React, GTM, server). A business on a locked-in **DIY builder**
+(Wix/Squarespace/GoDaddy/Weebly/Webflow) is flagged `weakBuilder` — a weak online presence that's still
+a lead, so it gets a lead-score bump. The platform shows on the directory card and in `index.json`.
+
 ## Lead scoring & quotes
 
 Every business gets a deterministic **lead score** (0–100, `src/generate/lead.ts`) — rewarding no

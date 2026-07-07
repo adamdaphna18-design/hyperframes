@@ -1,4 +1,5 @@
 import type { Business, WebsiteStatus } from "../types.ts";
+import { detectTechStack } from "./techstack.ts";
 
 /**
  * Hosts that are a social/marketplace presence, NOT a business's own website.
@@ -90,7 +91,20 @@ export async function verifyLive(
       signal: controller.signal,
     });
     const live = res.status < 400;
-    if (live) return { ...status, live: true };
+    if (live) {
+      // Detect what the existing site is built on (weak DIY builder → still a lead).
+      let tech: ReturnType<typeof detectTechStack> | undefined;
+      try {
+        tech = detectTechStack(await res.text(), res.headers);
+      } catch {
+        tech = undefined;
+      }
+      const enriched: WebsiteStatus = { ...status, live: true };
+      if (tech?.platform) enriched.platform = tech.platform;
+      if (tech && tech.technologies.length) enriched.technologies = tech.technologies;
+      if (tech?.weakBuilder) enriched.weakBuilder = true;
+      return enriched;
+    }
     return {
       hasWebsite: false,
       url: status.url,

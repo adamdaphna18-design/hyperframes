@@ -67,4 +67,10 @@ export interface WebsiteStatus {
   live?: boolean;
   /** Why we decided the business needs a site (for reporting). */
   reason: string;
+  /** Detected platform/CMS of an existing live site (verify-live only). */
+  platform?: string;
+  /** All detected technologies of the existing site. */
+  technologies?: string[];
+  /** The existing site runs on a locked-in DIY builder (weak presence). */
+  weakBuilder?: boolean;
 }
