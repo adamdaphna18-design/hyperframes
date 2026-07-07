@@ -9,6 +9,7 @@ import { detectWebsite, verifyLive } from "./website/detect.ts";
 import { generateSite, siteSlug } from "./generate/site.ts";
 import { ogImageFilename, ogImageSvg } from "./generate/ogimage.ts";
 import type { AnalyticsOptions } from "./generate/analytics.ts";
+import type { ChatWidgetOptions } from "./generate/chatwidget.ts";
 import { generateQuote, quoteHtml } from "./generate/quote.ts";
 import { scoreLead } from "./generate/lead.ts";
 import { generateVideo, videoSlug } from "./generate/video.ts";
@@ -56,6 +57,8 @@ export interface BuildOptions {
   brand?: string;
   /** Analytics providers (GA4 / Plausible) to inject into every page. */
   analytics?: AnalyticsOptions;
+  /** Embed an AI chat widget into every built site (the "AI Agent" deliverable). */
+  chatWidget?: ChatWidgetOptions;
   /** Also generate a price quote per site-less business (lead → quote). */
   quotes?: boolean;
   /** Also build for existing sites on a weak/outdated stack (redesign leads; needs --verify-live). */
@@ -176,6 +179,7 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
               brand: opts.brand,
               ogImage: opts.baseUrl ? `${opts.baseUrl.replace(/\/+$/, "")}/${ogPath}` : ogPath,
               analytics: opts.analytics,
+              chatWidget: opts.chatWidget,
             });
             await writeFile(join(sitesDir, `${slug}.html`), html, "utf8");
             return `sites/${slug}.html`;

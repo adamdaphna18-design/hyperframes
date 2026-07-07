@@ -135,6 +135,26 @@ their **Terms-of-Service and rate-limit territory** — check each site's ToS be
 from this locked environment; pull the current id from the data.gov.il dataset page and pass it via
 `datagovil:resource=<id>` (or ask and I'll add an `amutot:` preset like `registry:`).
 
+## Agency landing page (`agency`)
+
+`biz-site-builder agency --brand "Your Studio" [--tagline …] [--email …] [--phone …] [--market israel]`
+writes **your agency's own** public landing page (`src/generate/agency.ts`) — a self-contained,
+localized (RTL for Hebrew), brandable one-pager: how-it-works, website-build price bands, the recurring
+**AI-workforce menu** (incl. the flagship AI Agent), a **50%-off launch offer** (original prices shown
+struck through), **payment options** (50/50, up to 3 interest-free installments, card · bank transfer ·
+Bit / PayBox), and a free-audit CTA. Prices come from the **same rate cards** as the quote/opportunity
+generators (`siteBuildMenu`, `aiServiceMenu`), so the marketing page never drifts from what you'd quote.
+
+## AI chat widget on built sites (`--chat-widget`)
+
+`--chat-widget <embed-src> [--chat-embed-id <id>]` embeds an AI chat widget into every generated site —
+the deliverable of the **AI Agent** service. Like the analytics snippet, it's pure templating
+(`src/generate/chatwidget.ts`): a `<script src>` + `data-*` config for the operator's chosen embed
+(AnythingLLM's `anythingllm-embed`, Fleek's chatbox, or any `data-*`-driven widget). It runs **no LLM
+at build time** and injects nothing when unconfigured (no fake bubble); the bubble docks left on RTL
+sites automatically. The live agent backend is the operator's (stateful) responsibility — same boundary
+as a GA id.
+
 ## Website detection
 
 A business "has a website" only if it lists a **real, owned** URL. Facebook / Instagram / Yelp /

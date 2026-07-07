@@ -8,6 +8,7 @@ import { build, type OutputTarget } from "./pipeline.ts";
 import { buildAuditReport, auditReportHtml, comparisonHtml } from "./generate/audit.ts";
 import { recommendAiServices } from "./generate/opportunities.ts";
 import { estimateRoi } from "./generate/roi.ts";
+import { generateAgencyPage } from "./generate/agency.ts";
 import { outputSlug } from "./generate/util.ts";
 import type { Business } from "./types.ts";
 import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
@@ -41,6 +42,11 @@ interface ParsedArgs {
   category?: string;
   leadsPerMonth?: number;
   dealSize?: number;
+  chatWidget?: string;
+  chatEmbedId?: string;
+  tagline?: string;
+  email?: string;
+  phone?: string;
   help: boolean;
 }
 
@@ -153,6 +159,21 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--deal-size":
         args.dealSize = Number(argv[++i]) || undefined;
         break;
+      case "--chat-widget":
+        if (argv[++i]) args.chatWidget = argv[i];
+        break;
+      case "--chat-embed-id":
+        if (argv[++i]) args.chatEmbedId = argv[i];
+        break;
+      case "--tagline":
+        if (argv[++i]) args.tagline = argv[i];
+        break;
+      case "--email":
+        if (argv[++i]) args.email = argv[i];
+        break;
+      case "--phone":
+        if (argv[++i]) args.phone = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -175,6 +196,9 @@ Usage:
        Batch-audit every business in a CSV (website column required; optional
        "competitor" column). Writes one report per row + a roll-up index
        (worst score / hottest lead first).
+  biz-site-builder agency --brand "Your Studio" [--tagline X] [--email X] [--phone X] [--out agency.html]
+       Write your agency's own public landing page (services + 50%-off launch
+       offer + payment options), localized (--market israel / --locale he).
 
 Sources (repeatable, merged in order — later sources enrich earlier ones):
   csv:./businesses.csv              Ingest a CSV export
@@ -214,6 +238,8 @@ Options:
       --plausible <domain>  Inject the Plausible analytics snippet
       --quotes          Generate a price quote (lead → quote) per site-less business
       --include-weak    Also build redesigns for weak/outdated existing sites (needs --verify-live)
+      --chat-widget <src>   Embed an AI chat widget (embed script URL) into every built site
+      --chat-embed-id <id>  Agent/embed id for the chat widget (data-embed-id)
   -h, --help            Show this help
 
 Output:
@@ -448,6 +474,19 @@ function batchIndexHtml(rows: BatchRow[], s: import("./i18n/strings.ts").Strings
 `;
 }
 
+/** `agency`: write the agency's own public landing page (services + 50%-off + payment options). */
+async function runAgency(args: ParsedArgs): Promise<void> {
+  const s = stringsFor(auditLocale(args));
+  const name = args.brand ?? "Your Web Studio";
+  const html = generateAgencyPage(
+    { name, tagline: args.tagline, email: args.email, phone: args.phone, url: args.baseUrl },
+    s,
+  );
+  const out = args.out === ".out" ? "agency.html" : args.out;
+  await writeFile(out, html, "utf8");
+  process.stdout.write(`✓ ${out} — agency landing page for "${name}" (${s.code}).\n`);
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.command === "help") {
@@ -457,6 +496,10 @@ async function main(): Promise<void> {
   if (args.command === "audit") {
     if (args.csv) await runBatchAudit(args);
     else await runAudit(args);
+    return;
+  }
+  if (args.command === "agency" || args.command === "landing") {
+    await runAgency(args);
     return;
   }
   if (args.command !== "build") {
@@ -500,6 +543,7 @@ async function main(): Promise<void> {
       brand: args.brand,
       analytics:
         args.gaId || args.plausible ? { ga4: args.gaId, plausible: args.plausible } : undefined,
+      chatWidget: args.chatWidget ? { src: args.chatWidget, embedId: args.chatEmbedId } : undefined,
       quotes: args.quotes,
       includeWeak: args.includeWeak,
       log: (msg) => process.stdout.write(msg + "\n"),

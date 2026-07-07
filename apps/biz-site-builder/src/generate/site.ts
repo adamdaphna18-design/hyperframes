@@ -7,6 +7,7 @@ import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
 import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
+import { chatWidgetSnippet, hasChatWidget, type ChatWidgetOptions } from "./chatwidget.ts";
 import { extractKeywords } from "./keywords.ts";
 import { cityOf } from "./meta.ts";
 
@@ -21,6 +22,8 @@ export interface SiteOptions {
   ogImage?: string;
   /** Analytics providers to inject (GA4 / Plausible). */
   analytics?: AnalyticsOptions;
+  /** Embed an AI chat widget (the "AI Agent" service deliverable). */
+  chatWidget?: ChatWidgetOptions;
 }
 
 /**
@@ -223,6 +226,7 @@ export function generateSite(
         <div class="built">${esc(s.builtBy(!!bestReview(business)))}</div>
       </div>
     </footer>
+    ${hasChatWidget(opts.chatWidget) ? chatWidgetSnippet(opts.chatWidget, s.dir) : ""}
   </body>
 </html>
 `;

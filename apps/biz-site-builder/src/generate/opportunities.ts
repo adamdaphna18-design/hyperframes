@@ -100,6 +100,28 @@ const AI_AGENT = {
 };
 
 /**
+ * The full recurring-service menu (every tier, independent of any audit) — for
+ * the agency landing page. One source of truth with the finding-anchored path.
+ */
+export function aiServiceMenu(s: Strings = stringsFor("en")): AiService[] {
+  const he = s.code === "he";
+  const currency = "₪";
+  const items = TRIGGERS.map((t) => {
+    const c = he ? t.he : t.en;
+    return { key: t.key, name: c.name, pitch: c.pitch, monthly: t.monthly, currency };
+  });
+  const a = he ? AI_AGENT.he : AI_AGENT.en;
+  items.push({
+    key: AI_AGENT.key,
+    name: a.name,
+    pitch: a.pitch,
+    monthly: AI_AGENT.monthly,
+    currency,
+  });
+  return items;
+}
+
+/**
  * Recommend recurring AI services for an audited business — each anchored to a
  * finding the audit actually surfaced. A healthy site (no findings) returns an
  * empty set: no manufactured upsell.

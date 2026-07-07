@@ -51,6 +51,19 @@ const TYPE_NAME: Record<SiteType, { en: string; he: string }> = {
   portal: { en: "Portal / system", he: "פורטל / מערכת" },
 };
 
+/** Headline "from ₪X" bands for each site type — for the agency landing page. */
+export function siteBuildMenu(
+  s: Strings = stringsFor("en"),
+): Array<{ type: SiteType; name: string; from: number; currency: string }> {
+  const he = s.code === "he";
+  return (Object.keys(PRICING) as SiteType[]).map((type) => ({
+    type,
+    name: he ? TYPE_NAME[type].he : TYPE_NAME[type].en,
+    from: PRICING[type].min,
+    currency: "₪",
+  }));
+}
+
 export interface Quote {
   siteType: SiteType;
   siteTypeName: string;
