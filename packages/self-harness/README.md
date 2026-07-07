@@ -152,6 +152,43 @@ await selfHarness({
 });
 ```
 
+## Real-world example: Bruno collections
+
+`src/examples/bruno/` turns a real [Bruno](https://github.com/usebruno/bruno)
+collection into a Self-Harness task suite. Bruno stores each API request as a
+`.bru` file with an `assert` block — and that `assert` block _is_ a task
+verifier. So a collection a developer already wrote becomes the loop's tasks and
+their success criteria, with no extra work.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:bruno   # offline (recorded client)
+```
+
+```
+loaded 6 request(s) from the Bruno collection:
+  GET Agify — 3 assertion(s)   GET Cat Facts — 3 assertion(s)   ...
+── round 1 — 50% ──  ✓ committed: + rule: timeout-ms=2000
+── round 2 — 67% ──  gate rejected: regressed rest-countries → committed: + rule: retry-on-429
+── round 3 — 83% ──  ✓ committed: + rule: follow-redirects
+pass rate: 50% → 100%
+```
+
+What ships:
+
+- `bru-parser.ts` — a real `.bru` parser (block tokenizer with brace matching, so
+  JSON bodies and disabled `~entries` parse correctly).
+- `assertions.ts` — parses and evaluates `assert` expressions
+  (`res.status: eq 200`, `res.body.name: isDefined`, nested/indexed paths,
+  `eq`/`gt`/`contains`/… operators) against a response.
+- `environment.ts` — parses a `.bru` environment's `vars` and interpolates
+  `{{var}}` (the demo's Agify request resolves `{{name}}` from `demo.bru`).
+- `collection.ts` — loads every `.bru` request under a directory and maps each to
+  a task whose `check` runs its assertions.
+
+The `HttpAgent` gains an `envelope` mode so the response's real HTTP status
+reaches the assertions (`res.status: eq 200`). Point `loadBrunoCollection` at any
+Bruno collection on disk to tune a harness against your own requests.
+
 ## Design
 
 - **Harness as data.** `Harness` = system prompt + rules + typed limits + tools.
@@ -178,3 +215,4 @@ await selfHarness({
 | `models/`               | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
 | `demo/`                 | The runnable pathology suite + `runDemo`                                     |
 | `examples/public-apis/` | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
+| `examples/bruno/`       | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |

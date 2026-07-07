@@ -46,8 +46,42 @@ export {
   type HttpOptions,
   type HttpResult,
 } from "./examples/public-apis/http-client.js";
-export { HttpAgent, type ApiTask } from "./examples/public-apis/http-agent.js";
+export {
+  HttpAgent,
+  type ApiTask,
+  type HttpAgentOptions,
+  type HttpEnvelope,
+} from "./examples/public-apis/http-agent.js";
 export { HttpHeuristicProposer } from "./examples/public-apis/http-proposer.js";
 export { httpScriptedModel } from "./examples/public-apis/http-model.js";
 export { buildPublicApiSuite } from "./examples/public-apis/tasks.js";
 export { runPublicApiDemo } from "./examples/public-apis/run.js";
+
+// Bruno (usebruno/bruno) collection → Self-Harness tasks.
+export {
+  parseBru,
+  dictEntries,
+  type BruDocument,
+  type BruBlock,
+  type BruEntry,
+} from "./examples/bruno/bru-parser.js";
+export {
+  parseAssertions,
+  evaluateAssertions,
+  resolvePath,
+  type Assertion,
+  type AssertResponse,
+} from "./examples/bruno/assertions.js";
+export {
+  parseEnvironment,
+  interpolate,
+  type BruEnvironment,
+} from "./examples/bruno/environment.js";
+export { toBruRequest, type BruRequest } from "./examples/bruno/request.js";
+export {
+  loadBrunoCollection,
+  buildBrunoSuite,
+  bruRequestToTask,
+  demoCollectionDir,
+} from "./examples/bruno/collection.js";
+export { runBrunoDemo } from "./examples/bruno/run.js";
