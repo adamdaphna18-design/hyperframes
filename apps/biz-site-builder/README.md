@@ -178,10 +178,12 @@ to tailor it; without one, the generic profile is used.
 section (`src/generate/opportunities.ts`): each recommended AI service is **anchored to a finding the
 audit actually produced** — an SEO/tech gap → an SEO & Content Agent, a social/mobile gap → a 24/7 AI
 Receptionist, a security/perf/accessibility gap → a Lead Qualifier — priced from a fixed monthly rate
-card with a 20%-off bundle. A healthy site (no findings) gets **no** upsell — recommendations are
-grounded, not manufactured, and no invented traffic/revenue figures are asserted. The report
-_recommends_ these services; actually provisioning a Twilio/LLM agent is stateful, network-bound work
-that belongs to the operational layer.
+card with a 20%-off bundle. When the audit finds gaps across **two or more areas**, it also offers the
+flagship **AI Agent (autonomous workflows)** tier — one agent that runs the whole funnel end to end
+(answer → qualify → follow-up → schedule → post → report) rather than a single channel. A healthy site
+(no findings) gets **no** upsell — recommendations are grounded, not manufactured, and no invented
+traffic/revenue figures are asserted. The report _recommends_ these services; actually provisioning a
+Twilio/LLM agent is stateful, network-bound work that belongs to the operational layer.
 
 **ROI panel (operator-driven).** `src/generate/roi.ts` computes a return estimate — revenue recovered,
 monthly ROI %, and break-even leads — but **only when the operator supplies a lead volume**

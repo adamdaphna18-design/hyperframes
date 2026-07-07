@@ -124,7 +124,7 @@ describe("AI-service opportunities", () => {
     // Every recommended service maps to an area that actually has a finding.
     const areas = new Set(r.findings.map((f) => f.area));
     const anchored = opp.services.every((svc) =>
-      ["seo-content", "receptionist", "lead-qualifier"].includes(svc.key),
+      ["seo-content", "receptionist", "lead-qualifier", "ai-agent"].includes(svc.key),
     );
     expect(anchored).toBe(true);
     expect(areas.size).toBeGreaterThan(0);
@@ -136,6 +136,25 @@ describe("AI-service opportunities", () => {
   test("a healthy site gets no upsell (empty set)", () => {
     const r = buildAuditReport({ html: goodHtml, url: "https://cafe.example" }, en);
     expect(recommendAiServices(r, en).services).toHaveLength(0);
+  });
+  test("offers the flagship AI Agent when gaps span 2+ areas", () => {
+    const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, en);
+    const opp = recommendAiServices(r, en);
+    const agent = opp.services.find((svc) => svc.key === "ai-agent");
+    expect(agent).toBeDefined();
+    expect(agent!.monthly).toBe(899);
+    // Renders in the report's AI Workforce section.
+    expect(auditReportHtml(r, { s: en })).toContain(agent!.name);
+    // Hebrew flavor too.
+    const rHe = buildAuditReport({ html: badHtml, url: "http://shop.example" }, he);
+    expect(recommendAiServices(rHe, he).services.some((x) => x.key === "ai-agent")).toBe(true);
+  });
+  test("no AI Agent when only a single area has a finding", () => {
+    // A site whose only issue is a missing og:image (one 'social' finding).
+    const html = `<!doctype html><html lang="en"><head><meta name="viewport" content="x"><title>t</title><meta name="description" content="d"><script type="application/ld+json">{}</script></head><body><h1>a</h1><img src="a.jpg" alt="x" loading="lazy"></body></html>`;
+    const r = buildAuditReport({ html, url: "https://x.example" }, en);
+    expect(new Set(r.findings.map((f) => f.area)).size).toBe(1);
+    expect(recommendAiServices(r, en).services.some((x) => x.key === "ai-agent")).toBe(false);
   });
   test("the audit report renders the AI Workforce section when services apply", () => {
     const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, en);

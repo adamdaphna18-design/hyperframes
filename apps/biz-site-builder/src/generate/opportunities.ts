@@ -79,6 +79,27 @@ const TRIGGERS: Array<{
 ];
 
 /**
+ * The flagship tier: an autonomous **AI Agent** that runs the business's
+ * recurring workflows end to end (answer → qualify → follow up → schedule →
+ * post → report), not just one channel. Offered when the audit found gaps across
+ * **two or more areas** — enough operational surface that a single agent
+ * orchestrating everything beats bolting on point tools.
+ */
+const AI_AGENT = {
+  key: "ai-agent",
+  monthly: 899,
+  en: {
+    name: "AI Agent (autonomous workflows)",
+    pitch:
+      "One agent runs your whole funnel — answers, qualifies, follows up, schedules and reports — 24/7.",
+  },
+  he: {
+    name: "סוכן AI (וורקפלואו אוטונומי)",
+    pitch: "סוכן אחד מריץ את כל המשפך — עונה, מסנן, עושה מעקב, קובע פגישות ומדווח — 24/7.",
+  },
+};
+
+/**
  * Recommend recurring AI services for an audited business — each anchored to a
  * finding the audit actually surfaced. A healthy site (no findings) returns an
  * empty set: no manufactured upsell.
@@ -99,6 +120,17 @@ export function recommendAiServices(
       name: copy.name,
       pitch: copy.pitch,
       monthly: trigger.monthly,
+      currency,
+    });
+  }
+  // Flagship agent when the business has gaps across ≥2 areas.
+  if (areas.size >= 2) {
+    const copy = he ? AI_AGENT.he : AI_AGENT.en;
+    services.push({
+      key: AI_AGENT.key,
+      name: copy.name,
+      pitch: copy.pitch,
+      monthly: AI_AGENT.monthly,
       currency,
     });
   }
