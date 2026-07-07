@@ -61,6 +61,22 @@ describe("registry preset resolution", () => {
   });
 });
 
+describe("offline replay (file=)", () => {
+  test("loads the saved registry fixture without any network", async () => {
+    const src = createSource("registry:file=fixtures/registry.sample.json");
+    const out = await src.load();
+    expect(out.length).toBeGreaterThanOrEqual(5);
+    const bakery = out.find((b) => b.name.includes("מאפיית הבוקר"));
+    expect(bakery).toBeDefined();
+    expect(bakery!.id).toBe("515012345");
+    expect(bakery!.address).toBe("הרצל 45, רחובות");
+    expect(bakery!.website).toBeNull();
+  });
+  test("parses file= from the spec", () => {
+    expect(parseDataGovIlSpec("registry,file=x.json").file).toBe("x.json");
+  });
+});
+
 describe("registry API call shape", () => {
   test("issues a datastore_search with the resource id and active filter", async () => {
     let calledUrl = "";

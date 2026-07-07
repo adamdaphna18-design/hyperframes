@@ -185,6 +185,7 @@ Sources (repeatable, merged in order — later sources enrich earlier ones):
   web:https://a.com;ua=googlebot    ...with a crawler user-agent to slip past soft paywalls
   registry:q=מאפייה,limit=200       Israeli Registrar of Companies (רשם החברות) via data.gov.il
   registry:active=false             ...include struck-off companies (default: active only)
+  registry:file=./companies.json    ...replay a saved CKAN response offline (no network)
   datagovil:resource=<id>,q=<text>  Any other data.gov.il CKAN resource by id
 
 Output target (--target, default: wordpress):

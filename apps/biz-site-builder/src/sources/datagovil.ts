@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { Business, BusinessSource } from "../types.ts";
 import { normalizeRecord } from "./normalize.ts";
 
@@ -37,6 +38,8 @@ export interface DataGovIlOptions {
   limit?: number;
   /** Exact-match field filters passed to CKAN `filters` (JSON). */
   filters?: Record<string, string>;
+  /** Replay a saved CKAN response from disk instead of calling the network. */
+  file?: string;
   endpoint?: string;
   fetchImpl?: typeof fetch;
 }
@@ -51,14 +54,27 @@ export function ckanRecordsToBusinesses(records: Record<string, unknown>[]): Bus
   return records.map((rec, i) => normalizeRecord(rec, "datagovil", i));
 }
 
+/** Extract records from a CKAN datastore_search response (or a bare array). */
+function recordsFromCkan(json: unknown): Record<string, unknown>[] {
+  if (Array.isArray(json)) return json as Record<string, unknown>[];
+  const j = json as CkanResponse & { records?: Record<string, unknown>[] };
+  return j.result?.records ?? j.records ?? [];
+}
+
 export class DataGovIlSource implements BusinessSource {
   readonly name: string;
   constructor(private readonly opts: DataGovIlOptions) {
-    if (!opts.resourceId) throw new Error("DataGovIlSource needs a `resource` id.");
-    this.name = `datagovil:${opts.resourceId}`;
+    if (!opts.resourceId && !opts.file)
+      throw new Error("DataGovIlSource needs a `resource` id (or a `file` to replay).");
+    this.name = `datagovil:${opts.resourceId || opts.file}`;
   }
 
   async load(): Promise<Business[]> {
+    // Offline replay of a saved CKAN response — no network.
+    if (this.opts.file) {
+      const text = await readFile(this.opts.file, "utf8");
+      return ckanRecordsToBusinesses(recordsFromCkan(JSON.parse(text)));
+    }
     const endpoint = this.opts.endpoint ?? "https://data.gov.il/api/3/action/datastore_search";
     const doFetch = this.opts.fetchImpl ?? fetch;
     const params = new URLSearchParams({
@@ -75,7 +91,7 @@ export class DataGovIlSource implements BusinessSource {
       throw new Error(`data.gov.il request failed: ${res.status} ${res.statusText}`);
     }
     const json = (await res.json()) as CkanResponse;
-    return ckanRecordsToBusinesses(json.result?.records ?? []);
+    return ckanRecordsToBusinesses(recordsFromCkan(json));
   }
 }
 
@@ -87,7 +103,7 @@ export class DataGovIlSource implements BusinessSource {
 export function parseDataGovIlSpec(spec: string): DataGovIlOptions {
   const opts: DataGovIlOptions = { resourceId: "" };
   let active: boolean | undefined;
-  for (const part of spec.split(/[,;](?=\s*(?:resource|resource_id|q|query|limit|active)=)/)) {
+  for (const part of spec.split(/[,;](?=\s*(?:resource|resource_id|q|query|limit|active|file)=)/)) {
     const [k, ...rest] = part.split("=");
     const key = k?.trim();
     const value = rest.join("=").trim();
@@ -95,6 +111,7 @@ export function parseDataGovIlSpec(spec: string): DataGovIlOptions {
     else if (key === "q" || key === "query") opts.query = value;
     else if (key === "limit") opts.limit = Number(value) || undefined;
     else if (key === "active") active = value !== "false" && value !== "0";
+    else if (key === "file") opts.file = value;
   }
   // A leading bare token (before any key=value) is the resource id or alias.
   if (!opts.resourceId) {

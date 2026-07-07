@@ -96,6 +96,12 @@ source merged after). Override the resource with `datagovil:resource=<id>` if th
 > proxy); the source is fully unit-tested against the real CKAN request/response shape, and runs live
 > under a network policy that allows `data.gov.il`.
 
+**Offline replay.** `registry:file=<path>` (or `datagovil:file=<path>`) reads a **saved CKAN response**
+from disk instead of the network — the exact same parse path, no egress. `bun run demo:registry` uses
+this to build the full registry → Hebrew-WordPress flow from `fixtures/registry.sample.json` (five
+active Israeli companies, no websites) with zero network. Save a real response once
+(`curl '.../datastore_search?resource_id=…&limit=500' > companies.json`) and replay it deterministically.
+
 ### Israeli-market data
 
 The normalizer understands **Hebrew field names** (`שם`/`שם עסק`, `רחוב`+`עיר`, `טלפון`, `קטגוריה`,
