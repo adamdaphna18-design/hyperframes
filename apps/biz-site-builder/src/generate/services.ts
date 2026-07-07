@@ -128,23 +128,3 @@ export function servicesFor(business: Business, s: Strings): ServiceItem[] {
 export function isStarterMenu(business: Business): boolean {
   return !business.services?.length;
 }
-
-/** A category glyph for visual identity when the business has no photos. */
-const EMOJI: Record<string, string> = {
-  electrician: "⚡",
-  plumber: "🚿",
-  handyman: "🛠️",
-  restaurant: "🍽️",
-  salon: "💈",
-  lawyer: "⚖️",
-  clinic: "🦷",
-  gym: "🏋️",
-  auto: "🔧",
-  shop: "🛍️",
-  hotel: "🏨",
-};
-
-export function glyphFor(business: Business, s: Strings): string {
-  if (BARBER.test(business.category ?? "")) return "💈";
-  return EMOJI[getIndustryProfile(business, s).key] ?? "⭐";
-}

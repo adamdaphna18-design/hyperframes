@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Business } from "../src/types.ts";
 import { stringsFor } from "../src/i18n/strings.ts";
-import { glyphFor, isStarterMenu, servicesFor } from "../src/generate/services.ts";
+import { isStarterMenu, servicesFor } from "../src/generate/services.ts";
 import { generateSite } from "../src/generate/site.ts";
 import { servicesBlock } from "../src/wordpress/blocks.ts";
 
@@ -34,10 +34,6 @@ describe("service menus", () => {
     expect(isStarterMenu(b)).toBe(false);
     expect(isStarterMenu(biz({ category: "מספרה" }))).toBe(true);
   });
-  test("glyph identity per trade", () => {
-    expect(glyphFor(biz({ category: "Barbershop" }), en)).toBe("💈");
-    expect(glyphFor(biz({ category: "Restaurant" }), en)).toBe("🍽️");
-  });
 });
 
 describe("services render into both outputs", () => {
@@ -48,10 +44,10 @@ describe("services render into both outputs", () => {
     expect(html).toContain("₪80");
     expect(html).toContain("מחירון לדוגמה"); // starter-menu note
   });
-  test("a photoless site gets a glyph placeholder instead of an empty gallery", () => {
+  test("a photoless site does NOT fake a gallery (no emoji placeholders)", () => {
     const html = generateSite(biz({ name: "Cuts", category: "barber" }), en);
-    expect(html).toContain("gallery placeholder");
-    expect(html).toContain("💈");
+    expect(html).not.toContain("gallery placeholder");
+    expect(html).not.toContain("💈");
   });
   test("the WordPress home block includes the services list", () => {
     const block = servicesBlock(biz({ category: "מספרה" }), he);

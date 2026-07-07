@@ -18,7 +18,7 @@ import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
 import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
 import { chatWidgetSnippet, hasChatWidget, type ChatWidgetOptions } from "./chatwidget.ts";
-import { glyphFor, isStarterMenu, servicesFor } from "./services.ts";
+import { isStarterMenu, servicesFor } from "./services.ts";
 import { extractKeywords } from "./keywords.ts";
 import { cityOf } from "./meta.ts";
 
@@ -144,16 +144,6 @@ export function generateSite(
       </div></section>`
     : "";
 
-  // When the business has no photos, a tasteful glyph placeholder beats an empty page.
-  const glyph = glyphFor(business, s);
-  const placeholderGallery = business.images.length
-    ? ""
-    : `<section class="gallery placeholder" aria-hidden="true"><div class="wrap gal-wrap">
-        ${[0, 1, 2]
-          .map((i) => `<figure class="ph" style="--i:${i}"><span>${glyph}</span></figure>`)
-          .join("\n        ")}
-      </div></section>`;
-
   return `<!doctype html>
 <html lang="${s.lang}" dir="${s.dir}">
   <head>
@@ -221,9 +211,6 @@ export function generateSite(
       .menu .mi-name em { font-weight: 400; font-style: normal; color: #565d6b; font-size: 14px; }
       .menu .mi-price { margin-inline-start: auto; font-weight: 800; color: var(--accent-ink); white-space: nowrap; font-size: 18px; }
       .menu .menu-note { margin-top: 16px; color: #565d6b; font-size: 14px; }
-      .gallery.placeholder .gal-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-      .gallery.placeholder .ph { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 14px; font-size: 54px; color: #fff; background: linear-gradient(150deg, var(--accent), var(--accent-deep)); opacity: .92; }
-      @media (max-width: 640px) { .gallery.placeholder .gal-wrap { grid-template-columns: 1fr 1fr; } }
       .gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .reviews { background: var(--surface); }
       .review-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
@@ -246,7 +233,7 @@ export function generateSite(
   <body>
     <header class="hero">
       <div class="wrap">
-        <div class="badge" aria-hidden="true">${business.images.length ? esc(initials(business.name)) : glyphFor(business, s)}</div>
+        <div class="badge" aria-hidden="true">${esc(initials(business.name))}</div>
         <h1>${esc(business.name)}</h1>
         <p class="tagline">${esc(tagline)}</p>
         ${business.rating !== undefined ? `<div class="rating">${stars(business.rating)} ${business.rating.toFixed(1)}</div>` : ""}
@@ -264,7 +251,7 @@ export function generateSite(
           : ""
       }
       ${servicesSection}
-      ${gallery ? `<div class="wrap">${gallery}</div>` : placeholderGallery}
+      ${gallery ? `<div class="wrap">${gallery}</div>` : ""}
       ${reviews ? `<div class="wrap">${reviews}</div>` : ""}
       <section class="contact" id="contact">
         <div class="wrap">
