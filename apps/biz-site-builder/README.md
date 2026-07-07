@@ -19,6 +19,7 @@ ingest (parallel sources) ─▶ detect website + localise ─▶ select ─▶ 
 ```bash
 bun install
 bun run demo                       # builds WordPress + static + video into ./.out from fixtures
+                                   # (English CSV/JSON + the Hebrew רשם החברות registry, side by side)
 open .out/index.html               # browsable directory of every business + what was built
 ```
 
@@ -111,6 +112,28 @@ name/place/phone auto-selects the Hebrew/RTL site. Good free sources: **data.gov
 ([mluggy/techmap](https://github.com/mluggy/techmap), OpenIsraeliSupermarkets, Israel-Online-Stores,
 company-registry exports) ingested via `csv:`/`json:`. Respect each dataset's licence (e.g. techmap is
 ODbL — attribute Michael Lugassy and share-alike).
+
+#### Israeli business directories & registries — how each is ingested
+
+There is no single free bulk feed of "all Israeli businesses", so these split by **what they expose**:
+official **open data** (bulk, via CKAN) vs. **HTML directories** (per-business pages, via the `web:`
+scraper) vs. **paid/manual lookups**. Only the first is bulk-automatable for free.
+
+| Source                                                            | What it is                                           | How to ingest                                                                                                                   |
+| ----------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **רשם החברות / נסח חברה** ([gov.il](https://www.gov.il/))         | Registrar of Companies (official)                    | `registry:` preset — **bulk, free, already wired** (see above)                                                                  |
+| **Guidestar** ([guidestar.org.il](https://www.guidestar.org.il/)) | Nonprofits / עמותות registry (Ministry of Justice)   | Its dataset is published on data.gov.il — `datagovil:resource=<amutot-id>` (grab the current resource id from the dataset page) |
+| **דפי זהב / D.co.il** ([d.co.il](https://www.d.co.il/))           | Golden Pages business directory (addr/phone/reviews) | Per-business page via `web:https://www.d.co.il/<listing>` (JSON-LD/OG extract) — no free bulk API                               |
+| **B144** ([b144.co.il](https://www.b144.co.il/))                  | Bezeq's business index                               | Per-business page via `web:<url>` — no free bulk API                                                                            |
+| **CheckID** ([checkid.co.il](https://www.checkid.co.il/))         | Business-info directory                              | Per-business page via `web:<url>` — no free bulk API                                                                            |
+
+**Honest caveats.** (1) The HTML directories (D.co.il, B144, CheckID) have **no free bulk API** — the
+`web:` source reads one listing URL at a time; enumerating a whole category means a crawler, which is
+their **Terms-of-Service and rate-limit territory** — check each site's ToS before scraping at scale.
+(2) Guidestar covers **nonprofits (עמותות)**, not for-profit companies — for companies use `registry:`.
+(3) I have **not hardcoded** the Guidestar/עמותות CKAN resource id because I couldn't verify it live
+from this locked environment; pull the current id from the data.gov.il dataset page and pass it via
+`datagovil:resource=<id>` (or ask and I'll add an `amutot:` preset like `registry:`).
 
 ## Website detection
 

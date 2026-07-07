@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "verify:a11y": "bun run scripts/a11y.ts",
     "verify:seo": "bun run scripts/seo.ts",
-    "demo": "bun run src/cli.ts build --source csv:fixtures/businesses.sample.csv --source json:fixtures/businesses.sample.json --out .out --target both --video",
+    "demo": "bun run src/cli.ts build --source csv:fixtures/businesses.sample.csv --source json:fixtures/businesses.sample.json --source registry:file=fixtures/registry.sample.json --out .out --target both --video --quotes",
     "demo:registry": "bun run src/cli.ts build --source registry:file=fixtures/registry.sample.json --market israel --out .out-registry --target both --quotes"
   },
   "devDependencies": {
