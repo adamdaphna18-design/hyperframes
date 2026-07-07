@@ -1,6 +1,7 @@
 import type { Business } from "../types.ts";
 import { taglineFor } from "./util.ts";
 import { stringsFor, type Strings } from "../i18n/strings.ts";
+import { openingHoursSpecification, parseOpeningHours } from "./hours.ts";
 
 /**
  * Emit schema.org **LocalBusiness** JSON-LD for a business — the inverse of the
@@ -48,7 +49,14 @@ export function localBusinessJsonLd(
   if (business.email) node.email = business.email;
   if (business.address)
     node.address = { "@type": "PostalAddress", streetAddress: business.address };
-  if (business.hours) node.openingHours = business.hours;
+  if (business.hours) {
+    node.openingHours = business.hours;
+    const week = parseOpeningHours(business.hours);
+    if (week) {
+      const spec = openingHoursSpecification(week);
+      if (spec.length) node.openingHoursSpecification = spec;
+    }
+  }
   if (business.location) {
     node.geo = {
       "@type": "GeoCoordinates",
@@ -82,8 +90,55 @@ export function localBusinessJsonLd(
   return node;
 }
 
-/** JSON-LD as a `<script>` tag, safe to inline in HTML (escapes `<`). */
-export function jsonLdScript(business: Business, s: Strings = stringsFor("en")): string {
-  const json = JSON.stringify(localBusinessJsonLd(business, s), null, 2).replace(/</g, "\\u003c");
+/** Wrap a JSON-LD object in a `<script>` tag, safe to inline in HTML. */
+function scriptTag(node: Record<string, unknown>): string {
+  const json = JSON.stringify(node, null, 2).replace(/</g, "\\u003c");
   return `<script type="application/ld+json">\n${json}\n</script>`;
+}
+
+/** LocalBusiness JSON-LD as a `<script>` tag. */
+export function jsonLdScript(business: Business, s: Strings = stringsFor("en")): string {
+  return scriptTag(localBusinessJsonLd(business, s));
+}
+
+export interface SeoContext {
+  /** Absolute site root, e.g. https://dir.example. */
+  baseUrl?: string;
+  /** Path to this business's page under baseUrl, e.g. sites/rosa.html. */
+  path?: string;
+}
+
+/**
+ * BreadcrumbList JSON-LD: Home → Category → Business. Helps search engines show
+ * a breadcrumb trail in results. Absolute URLs only when a baseUrl is known.
+ */
+export function breadcrumbJsonLd(
+  business: Business,
+  ctx: SeoContext = {},
+): Record<string, unknown> {
+  const base = ctx.baseUrl?.replace(/\/+$/, "");
+  const items: Array<Record<string, unknown>> = [{ name: "Home", url: base ?? undefined }];
+  if (business.category) items.push({ name: business.category, url: undefined });
+  items.push({ name: business.name, url: base && ctx.path ? `${base}/${ctx.path}` : undefined });
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => {
+      const el: Record<string, unknown> = { "@type": "ListItem", position: i + 1, name: it.name };
+      if (it.url) el.item = it.url;
+      return el;
+    }),
+  };
+}
+
+/** All JSON-LD for a page: LocalBusiness + BreadcrumbList, as inline scripts. */
+export function jsonLdScripts(
+  business: Business,
+  s: Strings = stringsFor("en"),
+  ctx: SeoContext = {},
+): string {
+  return [
+    scriptTag(localBusinessJsonLd(business, s)),
+    scriptTag(breadcrumbJsonLd(business, ctx)),
+  ].join("\n    ");
 }

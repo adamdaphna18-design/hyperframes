@@ -46,8 +46,10 @@ export interface BuildOptions {
   geocode?: boolean;
   /** Contact string for Nominatim's required User-Agent. */
   geocodeEmail?: string;
-  /** Base URL where <out> will be hosted (for sitemap.xml / robots.txt). */
+  /** Base URL where <out> will be hosted (for sitemap.xml / robots.txt / canonical). */
   baseUrl?: string;
+  /** Brand suffix appended to page titles. */
+  brand?: string;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
@@ -147,7 +149,12 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
         result.sitePath = await rt.step(
           `site/${d.business.id}`,
           async () => {
-            await writeFile(join(sitesDir, `${slug}.html`), generateSite(d.business, s), "utf8");
+            const html = generateSite(d.business, s, {
+              baseUrl: opts.baseUrl,
+              path: `sites/${slug}.html`,
+              brand: opts.brand,
+            });
+            await writeFile(join(sitesDir, `${slug}.html`), html, "utf8");
             return `sites/${slug}.html`;
           },
           { cost: 1 },

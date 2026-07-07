@@ -25,6 +25,10 @@ export interface Strings {
   hoursLabel: string;
   contactFallback: string;
   builtBy: (withReviews: boolean) => string;
+  /** Weekday names, Monday-first (index 0 = Monday … 6 = Sunday). */
+  days: [string, string, string, string, string, string, string];
+  closedLabel: string;
+  open24: string;
 
   // Video
   visitUs: string;
@@ -71,6 +75,9 @@ const en: Strings = {
   contactFallback: "Get in touch to learn more.",
   builtBy: (withReviews) =>
     `Site auto-built by biz-site-builder from this business's public profile${withReviews ? " and community reviews" : ""}.`,
+  days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  closedLabel: "Closed",
+  open24: "Open 24 hours",
 
   visitUs: "Visit us",
   videoContactFallback: "Come visit us today",
@@ -115,6 +122,9 @@ const he: Strings = {
   contactFallback: "צרו איתנו קשר לפרטים נוספים.",
   builtBy: (withReviews) =>
     `האתר נבנה אוטומטית על ידי biz-site-builder מתוך הפרופיל העסקי הציבורי${withReviews ? " וביקורות הקהילה" : ""}.`,
+  days: ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"],
+  closedLabel: "סגור",
+  open24: "פתוח 24 שעות",
 
   visitUs: "בואו לבקר",
   videoContactFallback: "בואו לבקר אותנו היום",

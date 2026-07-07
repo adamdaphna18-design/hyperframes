@@ -85,20 +85,33 @@ A business "has a website" only if it lists a **real, owned** URL. Facebook / In
 Google-Maps / Linktree links count as _not_ a website — those businesses still get one built. With
 `--verify-live`, listed URLs are HTTP-checked and **dead links** fall back to needing a site.
 
-## Local SEO & maps
+## Local SEO, social & maps
 
-Every generated site is built for local search and closes the loop with the scraper (which _reads_
-this same data):
+Every generated site is built for local search and social sharing, and closes the loop with the
+scraper (which _reads_ this same data):
 
-- **schema.org LocalBusiness JSON-LD** — injected into the static site `<head>` and, for WordPress,
-  via a `mu-plugin` in `wp_head`. Includes `aggregateRating` + `review[]` from community reviews so
-  results can show star ratings (Google Rich Results / Bing).
-- **Leaflet + OpenStreetMap map** — a self-hosted, key-free interactive map on the contact section
-  when the business has coordinates (static site inline; WordPress via a `[bsb_map]` shortcode).
+- **schema.org LocalBusiness JSON-LD** — static `<head>` + a WordPress `mu-plugin` in `wp_head`.
+  Includes `aggregateRating` + `review[]` (star ratings in Google Rich Results / Bing) and
+  `openingHoursSpecification` parsed from OSM `opening_hours`.
+- **schema.org BreadcrumbList** — Home → Category → Business, on the static site (WordPress gets
+  breadcrumbs from Yoast).
+- **Open Graph + Twitter Cards** ([ogp.me](https://ogp.me) + Twitter Cards) — `og:*` and `twitter:*`
+  tags for rich link previews; `og:image`/`twitter:image` from the first photo.
+- **Keyword-rich titles & descriptions** — `{name} — {category} in {city} | {brand}` (`--brand`),
+  a `<meta name="description">` from the profile, `robots: index,follow`, `canonical`, and `hreflang`
+  (en/he) when a base URL is set.
+- **Structured opening hours** — the common OSM `opening_hours` subset (`Mo-Fr 08:00-18:00; Sa …;
+Su off`, `24/7`) parsed into a localized `<time>` table on the site and `openingHoursSpecification`
+  in JSON-LD; unparseable strings fall back to raw text.
+- **Leaflet + OpenStreetMap map** — self-hosted, key-free interactive map on the contact section when
+  the business has coordinates (static inline; WordPress via a `[bsb_map]` shortcode).
 - **Nominatim geocoding** (`--geocode`) — fills missing coordinates from the address via
-  OpenStreetMap Nominatim, so address-only businesses still get a map. Respects Nominatim's policy
-  (descriptive User-Agent via `--geocode-email`, geocode sparingly).
+  OpenStreetMap Nominatim (descriptive User-Agent via `--geocode-email`; geocode sparingly).
 - **sitemap.xml + robots.txt** — written to `<out>` for crawlability; set the host with `--base-url`.
+
+On WordPress the resolved **Yoast SEO** plugin owns the OG/Twitter/canonical/breadcrumb tags at
+runtime, so the bundle ships the _richer_ LocalBusiness + hours JSON-LD via the mu-plugin and lets
+Yoast handle the rest; the static site emits everything itself.
 
 ## Localization (Israel market → Hebrew)
 
@@ -134,7 +147,8 @@ Workflow tool and its open re-implementations (odw, open-dynamic-workflows): `st
     --live-plugins        Augment plugin choices via the WordPress.org plugins API
     --geocode             Geocode missing coordinates via OSM Nominatim (adds a map)
     --geocode-email <e>   Contact string for Nominatim's User-Agent
-    --base-url <url>      Host URL for sitemap.xml / robots.txt
+    --base-url <url>      Host URL for sitemap.xml / robots.txt / canonical + OG URLs
+    --brand <name>        Brand suffix appended to page titles
 -h, --help
 ```
 

@@ -21,6 +21,7 @@ interface ParsedArgs {
   geocode: boolean;
   geocodeEmail?: string;
   baseUrl?: string;
+  brand?: string;
   help: boolean;
 }
 
@@ -98,6 +99,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--base-url":
         if (argv[++i]) args.baseUrl = argv[i];
         break;
+      case "--brand":
+        if (argv[++i]) args.brand = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -140,7 +144,8 @@ Options:
       --live-plugins    Augment plugin choices via the WordPress.org plugins API
       --geocode         Geocode addresses missing coordinates via OSM Nominatim (adds a map)
       --geocode-email <e>  Contact string for Nominatim's User-Agent
-      --base-url <url>  Host URL for sitemap.xml / robots.txt (default: https://example.com)
+      --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
+      --brand <name>    Brand suffix appended to page <title>s
   -h, --help            Show this help
 
 Output:
@@ -201,6 +206,7 @@ async function main(): Promise<void> {
       geocode: args.geocode,
       geocodeEmail: args.geocodeEmail,
       baseUrl: args.baseUrl,
+      brand: args.brand,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)

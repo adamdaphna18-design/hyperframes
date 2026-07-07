@@ -2,8 +2,19 @@ import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import { bestReview, esc, initials, outputSlug, paletteFor, stars, taglineFor } from "./util.ts";
-import { jsonLdScript } from "./schema.ts";
+import { jsonLdScripts } from "./schema.ts";
 import { hasMap, leafletAssets, leafletMap } from "./map.ts";
+import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
+import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
+
+export interface SiteOptions {
+  /** Absolute site root for canonical/OG URLs, e.g. https://dir.example. */
+  baseUrl?: string;
+  /** This page's path under baseUrl, e.g. sites/rosa.html. */
+  path?: string;
+  /** Brand suffix for the <title>. */
+  brand?: string;
+}
 
 /**
  * Generate a self-contained, responsive one-page website for a business from
@@ -11,7 +22,17 @@ import { hasMap, leafletAssets, leafletMap } from "./map.ts";
  * portable and can be dropped on any static host. Fully localised: pass the
  * Hebrew string table and the document renders right-to-left in Hebrew.
  */
-export function generateSite(business: Business, s: Strings = stringsFor("en")): string {
+export function generateSite(
+  business: Business,
+  s: Strings = stringsFor("en"),
+  opts: SiteOptions = {},
+): string {
+  const meta: MetaContext = {
+    locale: s,
+    baseUrl: opts.baseUrl,
+    path: opts.path,
+    brand: opts.brand,
+  };
   const p = paletteFor(business);
   const tagline = taglineFor(business, s);
   const mapsQuery = encodeURIComponent(business.address ?? business.name);
@@ -55,7 +76,7 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
     business.email &&
       `<li><span>${esc(s.emailLabel)}</span><a href="mailto:${esc(business.email)}">${esc(business.email)}</a></li>`,
     business.hours &&
-      `<li><span>${esc(s.hoursLabel)}</span><span>${esc(business.hours)}</span></li>`,
+      `<li><span>${esc(s.hoursLabel)}</span><span>${hoursValue(business.hours, s)}</span></li>`,
   ]
     .filter(Boolean)
     .join("\n          ");
@@ -69,12 +90,9 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${esc(business.name)}${business.category ? ` — ${esc(business.category)}` : ""}</title>
-    <meta name="description" content="${esc(tagline)}" />
-    <meta property="og:title" content="${esc(business.name)}" />
-    <meta property="og:description" content="${esc(tagline)}" />
-    ${business.images[0] ? `<meta property="og:image" content="${esc(business.images[0])}" />` : ""}
-    ${jsonLdScript(business, s)}
+    <title>${esc(seoTitle(business, meta))}</title>
+    ${headMeta(business, meta)}
+    ${jsonLdScripts(business, s, { baseUrl: opts.baseUrl, path: opts.path })}
     ${hasMap(business) ? leafletAssets() : ""}
     <style>
       :root {
@@ -137,6 +155,10 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
       .contact ul { list-style: none; display: grid; gap: 14px; max-width: 560px; }
       .contact li { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: baseline; }
       .contact li span:first-child { font-weight: 700; opacity: .55; text-transform: uppercase; font-size: 13px; letter-spacing: .06em; }
+      table.hours { border-collapse: collapse; font-size: 15px; }
+      table.hours th { text-align: start; font-weight: 600; padding: 2px 18px 2px 0; opacity: .85; }
+      table.hours td { padding: 2px 0; }
+      table.hours .closed { opacity: .5; }
       footer { padding: 40px 0; color: rgba(0,0,0,.5); font-size: 14px; border-top: 1px solid rgba(0,0,0,.08); }
       footer .built { opacity: .8; }
     </style>
@@ -187,4 +209,10 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
 
 export function siteSlug(business: Business): string {
   return outputSlug(business);
+}
+
+/** Render hours as a structured table when parseable, else the raw string. */
+function hoursValue(hours: string, s: Strings): string {
+  const week = parseOpeningHours(hours);
+  return week ? hoursTableHtml(week, s) : esc(hours);
 }
