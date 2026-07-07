@@ -1,0 +1,53 @@
+{
+  "version": 0.6,
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": 40.7181,
+      "lon": -73.9571,
+      "tags": {
+        "name": "Greenpoint Hardware",
+        "shop": "hardware",
+        "addr:housenumber": "123",
+        "addr:street": "Manhattan Ave",
+        "addr:city": "Brooklyn",
+        "phone": "+1 718-555-0200",
+        "opening_hours": "Mo-Sa 08:00-19:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 2002,
+      "center": { "lat": 40.7195, "lon": -73.9442 },
+      "tags": {
+        "name": "Book Thug Nation",
+        "shop": "books",
+        "website": "https://bookthugnation.example",
+        "addr:street": "N 3rd St",
+        "addr:city": "Brooklyn"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3003,
+      "lat": 40.7,
+      "lon": -73.95,
+      "tags": {
+        "amenity": "bench"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4004,
+      "lat": 40.7211,
+      "lon": -73.9502,
+      "tags": {
+        "name": "Sunrise Nails",
+        "shop": "beauty",
+        "contact:website": "https://facebook.com/sunrisenails",
+        "phone": "+1 718-555-0244"
+      }
+    }
+  ]
+}

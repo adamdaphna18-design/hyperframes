@@ -1,0 +1,6 @@
+name,category,description,address,phone,website,hours,rating,images,reviews
+Rosa's Trattoria,Italian Restaurant,"Family-run trattoria serving hand-made pasta since 1998.","512 Vine St, Brooklyn, NY",+1 718-555-0142,,"Tue–Sun 5–10pm",4.7,https://images.example/rosa-1.jpg|https://images.example/rosa-2.jpg,"Maria (5): Best cacio e pepe in the borough | Dan (4): Cozy spot, lovely staff"
+Bright Smile Dental,Dentist,"Gentle family dentistry and cosmetic care.","88 Union Ave, Brooklyn, NY",+1 718-555-0199,https://brightsmiledental.example,"Mon–Fri 8–5",4.9,,"Priya (5): Painless cleaning, highly recommend"
+Corner Cuts Barbershop,Barber,"Classic cuts and hot-towel shaves.","19 Bedford Ave, Brooklyn, NY",+1 718-555-0177,https://facebook.com/cornercuts,"Tue–Sat 10–7",4.5,https://images.example/barber.jpg,"Leo (5): Sharpest fade in Williamsburg"
+The Daily Grind Coffee,Coffee Shop,"Small-batch roaster and neighbourhood café.","44 Grand St, Brooklyn, NY",+1 718-555-0110,,"Daily 7–6",4.6,https://images.example/coffee-1.jpg|https://images.example/coffee-2.jpg,"Ana (5): My morning ritual | Sam (4): Great oat-milk latte"
+Pit Stop Auto Repair,Auto Repair,"Honest neighbourhood mechanics, no upsell.","201 Metropolitan Ave, Brooklyn, NY",+1 718-555-0166,http://pitstopauto.example,"Mon–Sat 8–6",4.3,,
