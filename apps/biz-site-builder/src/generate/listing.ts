@@ -2,6 +2,7 @@ import type { Business, WebsiteStatus } from "../types.ts";
 import type { LocaleCode, Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import { esc, initials, paletteFor, stars } from "./util.ts";
+import { extractKeywords } from "./keywords.ts";
 
 export interface ListingEntry {
   business: Business;
@@ -33,6 +34,7 @@ export function generateIndexJson(entries: ListingEntry[]): string {
     generatedVideo: e.videoPath ?? null,
     generatedWordPress: e.wpBundlePath ?? null,
     locale: e.locale ?? "en",
+    keywords: extractKeywords(e.business, stringsFor(e.locale ?? "en")).all,
   }));
   return JSON.stringify(data, null, 2) + "\n";
 }

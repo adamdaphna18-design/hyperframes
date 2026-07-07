@@ -108,6 +108,10 @@ scraper (which _reads_ this same data):
 - **Keyword-rich titles & descriptions** — `{name} — {category} in {city} | {brand}` (`--brand`),
   a `<meta name="description">` from the profile, `robots: index,follow`, `canonical`, and `hreflang`
   (en/he) when a base URL is set.
+- **Keyword engine** — dependency-free **RAKE** extraction over the description, seeded with the city
+  - category for local long-tail phrases ("best coffee shop in Tel Aviv"). Flows into
+    `<meta name="keywords">`, schema.org `keywords`, descriptive image `alt` text, and a per-business
+    keyword report in `index.json`. Hebrew falls back to seed phrases (no English RAKE).
 - **Structured opening hours** — the common OSM `opening_hours` subset (`Mo-Fr 08:00-18:00; Sa …;
 Su off`, `24/7`) parsed into a localized `<time>` table on the site and `openingHoursSpecification`
   in JSON-LD; unparseable strings fall back to raw text.

@@ -7,6 +7,8 @@ import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
 import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
+import { extractKeywords } from "./keywords.ts";
+import { cityOf } from "./meta.ts";
 
 export interface SiteOptions {
   /** Absolute site root for canonical/OG URLs, e.g. https://dir.example. */
@@ -32,25 +34,36 @@ export function generateSite(
   s: Strings = stringsFor("en"),
   opts: SiteOptions = {},
 ): string {
+  const keywords = extractKeywords(business, s);
   const meta: MetaContext = {
     locale: s,
     baseUrl: opts.baseUrl,
     path: opts.path,
     brand: opts.brand,
     ogImage: opts.ogImage,
+    keywords: keywords.all,
   };
   const p = paletteFor(business);
   const tagline = taglineFor(business, s);
   const mapsQuery = encodeURIComponent(business.address ?? business.name);
   const telHref = business.phone ? business.phone.replace(/[^+\d]/g, "") : "";
+  // Keyword-rich, descriptive image alt text (name + top keyword + city).
+  const city = cityOf(business);
+  const altBase = [
+    business.name,
+    keywords.primary[0],
+    city && (s.code === "he" ? `ב${city}` : `in ${city}`),
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   const gallery = business.images.length
     ? `<section class="gallery" id="gallery" aria-label="${esc(s.photosCount(business.images.length))}">
         ${business.images
           .slice(0, 8)
           .map(
-            (src) =>
-              `<figure><img loading="lazy" src="${esc(src)}" alt="${esc(business.name)}" /></figure>`,
+            (src, i) =>
+              `<figure><img loading="lazy" src="${esc(src)}" alt="${esc(`${altBase}${i > 0 ? ` (${i + 1})` : ""}`)}" /></figure>`,
           )
           .join("\n        ")}
       </section>`
@@ -98,7 +111,7 @@ export function generateSite(
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${esc(seoTitle(business, meta))}</title>
     ${headMeta(business, meta)}
-    ${jsonLdScripts(business, s, { baseUrl: opts.baseUrl, path: opts.path })}
+    ${jsonLdScripts(business, s, { baseUrl: opts.baseUrl, path: opts.path, keywords: keywords.all })}
     ${opts.analytics ? analyticsSnippet(business, opts.analytics) : ""}
     ${hasMap(business) ? leafletAssets() : ""}
     <style>

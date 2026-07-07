@@ -22,6 +22,8 @@ export interface MetaContext {
   altPath?: string;
   /** Absolute/relative URL of a generated branded OG image (overrides a photo). */
   ogImage?: string;
+  /** Extracted keywords for the <meta name="keywords"> tag. */
+  keywords?: string[];
 }
 
 /** Best-effort city extraction from a "street, city, region" address. */
@@ -73,6 +75,9 @@ export function headMeta(business: Business, ctx: MetaContext = {}): string {
   const lines: string[] = [
     tag("name", "description", desc),
     tag("name", "robots", "index, follow"),
+  ];
+  if (ctx.keywords?.length) lines.push(tag("name", "keywords", ctx.keywords.join(", ")));
+  lines.push(
     // Open Graph (ogp.me)
     tag("property", "og:type", "business.business"),
     tag("property", "og:title", seoTitle(business, ctx)),
@@ -82,7 +87,7 @@ export function headMeta(business: Business, ctx: MetaContext = {}): string {
     tag("name", "twitter:card", image ? "summary_large_image" : "summary"),
     tag("name", "twitter:title", seoTitle(business, ctx)),
     tag("name", "twitter:description", desc),
-  ];
+  );
   if (business.name) lines.push(tag("property", "og:site_name", business.name));
   if (image) {
     lines.push(tag("property", "og:image", image));

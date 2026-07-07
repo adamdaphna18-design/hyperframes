@@ -53,6 +53,7 @@ export function cuisineOf(business: Business): string[] {
 export function localBusinessJsonLd(
   business: Business,
   s: Strings = stringsFor("en"),
+  opts: { keywords?: string[] } = {},
 ): Record<string, unknown> {
   const type = schemaType(business.category);
   const node: Record<string, unknown> = {
@@ -61,6 +62,7 @@ export function localBusinessJsonLd(
     name: business.name,
     description: business.description ?? taglineFor(business, s),
   };
+  if (opts.keywords?.length) node.keywords = opts.keywords.join(", ");
   if (FOOD_TYPES.has(type)) {
     const cuisines = cuisineOf(business);
     if (cuisines.length) node.servesCuisine = cuisines;
@@ -128,6 +130,8 @@ export interface SeoContext {
   baseUrl?: string;
   /** Path to this business's page under baseUrl, e.g. sites/rosa.html. */
   path?: string;
+  /** Extracted keywords to add to the LocalBusiness node. */
+  keywords?: string[];
 }
 
 /**
@@ -160,7 +164,7 @@ export function jsonLdScripts(
   ctx: SeoContext = {},
 ): string {
   return [
-    scriptTag(localBusinessJsonLd(business, s)),
+    scriptTag(localBusinessJsonLd(business, s, { keywords: ctx.keywords })),
     scriptTag(breadcrumbJsonLd(business, ctx)),
   ].join("\n    ");
 }
