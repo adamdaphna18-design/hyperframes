@@ -104,6 +104,18 @@ plus auxiliary tech (WooCommerce, jQuery, React, GTM, server). A business on a l
 (Wix/Squarespace/GoDaddy/Weebly/Webflow) is flagged `weakBuilder` — a weak online presence that's still
 a lead, so it gets a lead-score bump. The platform shows on the directory card and in `index.json`.
 
+## Website audit (customer-facing lead magnet)
+
+`biz-site-builder audit --url https://a-business.com [--out report.html] [--locale he] [--brand X]`
+scans a business that **already has a site** and writes a branded, localized (RTL for Hebrew) audit
+report. It composes the existing deterministic analyzers — the on-page **SEO audit**, the
+**tech-stack detector**, and a few heuristics — into findings where **every issue maps to a service
+you sell** (SEO, social, accessibility, mobile, security, redesign, maintenance), with a 0–100 health
+score, an **estimate** (a redesign when the stack is weak/outdated or there are ≥2 serious issues,
+else a fix-and-optimize package), and a call to action. The point is to turn a scanned business into a
+customer and cut acquisition cost. No browser, no LLM — deterministic, and the generator
+(`src/generate/audit.ts`) is pure/testable (the CLI just fetches the page).
+
 ## Lead scoring & quotes
 
 Every business gets a deterministic **lead score** (0–100, `src/generate/lead.ts`) — rewarding no

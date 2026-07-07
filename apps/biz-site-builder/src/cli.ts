@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
+import { writeFile } from "node:fs/promises";
 import { createSource } from "./sources/index.ts";
+import { WebSource } from "./sources/web.ts";
 import { build, type OutputTarget } from "./pipeline.ts";
-import type { LocaleCode } from "./i18n/strings.ts";
+import { buildAuditReport, auditReportHtml } from "./generate/audit.ts";
+import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
 
 interface ParsedArgs {
   command: string;
@@ -26,6 +29,7 @@ interface ParsedArgs {
   plausible?: string;
   quotes: boolean;
   includeWeak: boolean;
+  url?: string;
   help: boolean;
 }
 
@@ -120,6 +124,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--include-weak":
         args.includeWeak = true;
         break;
+      case "--url":
+        if (argv[++i]) args.url = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -133,6 +140,9 @@ const HELP = `biz-site-builder — scrape/list businesses, build WordPress sites
 
 Usage:
   biz-site-builder build --source <type:spec> [--source ...] [options]
+  biz-site-builder audit --url <url> [--out report.html] [--locale he] [--brand X]
+       Scan a live business site and write a branded audit report (issues → services
+       we sell → estimate → CTA) — a lead magnet for businesses that already have a site.
 
 Sources (repeatable, merged in order — later sources enrich earlier ones):
   csv:./businesses.csv              Ingest a CSV export
@@ -184,10 +194,46 @@ Example (Israel market, Hebrew WordPress sites + videos):
     --market israel --target wordpress --video --out ./directory
 `;
 
+function auditLocale(args: ParsedArgs): LocaleCode {
+  if (args.locale) return args.locale;
+  if (args.market && ["israel", "il", "he", "hebrew"].includes(args.market.toLowerCase()))
+    return "he";
+  return "en";
+}
+
+/** `audit --url <url>`: fetch a live site and write a branded audit report. */
+async function runAudit(args: ParsedArgs): Promise<void> {
+  if (!args.url) {
+    process.stderr.write("Error: audit needs --url <url>.\n");
+    process.exitCode = 1;
+    return;
+  }
+  const s = stringsFor(auditLocale(args));
+  const src = new WebSource({ urls: [args.url] });
+  const page = await src.fetchPage(args.url);
+  if (!page || page.status >= 400) {
+    process.stderr.write(
+      `Error: could not fetch ${args.url} (status ${page?.status ?? "unreachable"}).\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const report = buildAuditReport({ html: page.html, url: page.finalUrl }, s);
+  const out = args.out === ".out" ? "audit.html" : args.out;
+  await writeFile(out, auditReportHtml(report, { s, brand: args.brand }), "utf8");
+  process.stdout.write(
+    `✓ ${out} — score ${report.score}/100, ${report.findings.length} issue(s)${report.platform ? `, ${report.platform}` : ""}. Est. ${report.estimate.currency}${report.estimate.min}–${report.estimate.currency}${report.estimate.max}.\n`,
+  );
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.command === "help") {
     process.stdout.write(HELP);
+    return;
+  }
+  if (args.command === "audit") {
+    await runAudit(args);
     return;
   }
   if (args.command !== "build") {
