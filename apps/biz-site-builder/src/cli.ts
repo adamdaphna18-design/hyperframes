@@ -183,6 +183,9 @@ Sources (repeatable, merged in order — later sources enrich earlier ones):
   overpass:bbox=40.6,-74.0,40.7,-73.9   ...or within a bounding box (south,west,north,east)
   web:https://a.com,https://b.com   Ladder-style server-side scrape (JSON-LD/OG) → business profile
   web:https://a.com;ua=googlebot    ...with a crawler user-agent to slip past soft paywalls
+  registry:q=מאפייה,limit=200       Israeli Registrar of Companies (רשם החברות) via data.gov.il
+  registry:active=false             ...include struck-off companies (default: active only)
+  datagovil:resource=<id>,q=<text>  Any other data.gov.il CKAN resource by id
 
 Output target (--target, default: wordpress):
   wordpress   Full WordPress deploy bundle per business (WXR + WP-CLI + Composer + block theme)

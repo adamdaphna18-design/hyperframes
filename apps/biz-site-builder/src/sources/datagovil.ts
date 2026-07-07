@@ -9,14 +9,34 @@ import { normalizeRecord } from "./normalize.ts";
  * typically Hebrew — the normalizer's Hebrew aliases map them to the Business
  * shape, and the Israel market detection then renders them in Hebrew/RTL.
  *
- * Find a resource id at https://data.gov.il and pass it as `resource=<id>`.
+ * Find a resource id at https://data.gov.il and pass it as `resource=<id>`, or
+ * use the `registry` alias for the **Registrar of Companies** (רשם החברות).
  */
+
+/** data.gov.il resource id for the Israeli Registrar of Companies (רשם החברות). */
+export const COMPANY_REGISTRY_RESOURCE = "f004176c-b85f-4542-8901-7b3176f9a054";
+
+/** The registry's status field + the value marking an active company. */
+export const REGISTRY_STATUS_FIELD = "סטטוס חברה";
+export const REGISTRY_STATUS_ACTIVE = "פעילה";
+
+const REGISTRY_ALIASES = new Set([
+  "registry",
+  "companies",
+  "company-registry",
+  "rasham",
+  "רשם",
+  "רשם החברות",
+  "רשם_החברות",
+]);
 
 export interface DataGovIlOptions {
   resourceId: string;
   /** Free-text filter passed to CKAN `q`. */
   query?: string;
   limit?: number;
+  /** Exact-match field filters passed to CKAN `filters` (JSON). */
+  filters?: Record<string, string>;
   endpoint?: string;
   fetchImpl?: typeof fetch;
 }
@@ -46,6 +66,8 @@ export class DataGovIlSource implements BusinessSource {
       limit: String(this.opts.limit ?? 100),
     });
     if (this.opts.query) params.set("q", this.opts.query);
+    if (this.opts.filters && Object.keys(this.opts.filters).length)
+      params.set("filters", JSON.stringify(this.opts.filters));
     const res = await doFetch(`${endpoint}?${params.toString()}`, {
       headers: { Accept: "application/json" },
     });
@@ -57,18 +79,34 @@ export class DataGovIlSource implements BusinessSource {
   }
 }
 
-/** Parse `datagovil:resource=<id>,q=<query>,limit=<n>`. */
+/**
+ * Parse `datagovil:resource=<id>,q=<query>,limit=<n>` — or the `registry`
+ * alias for רשם החברות, which resolves to the registrar resource id and filters
+ * to active companies by default (`active=false` to include struck-off ones).
+ */
 export function parseDataGovIlSpec(spec: string): DataGovIlOptions {
   const opts: DataGovIlOptions = { resourceId: "" };
-  for (const part of spec.split(/[,;](?=\s*(?:resource|q|query|limit)=)/)) {
+  let active: boolean | undefined;
+  for (const part of spec.split(/[,;](?=\s*(?:resource|resource_id|q|query|limit|active)=)/)) {
     const [k, ...rest] = part.split("=");
     const key = k?.trim();
     const value = rest.join("=").trim();
     if (key === "resource" || key === "resource_id") opts.resourceId = value;
     else if (key === "q" || key === "query") opts.query = value;
     else if (key === "limit") opts.limit = Number(value) || undefined;
+    else if (key === "active") active = value !== "false" && value !== "0";
   }
-  // Bare value is treated as a resource id.
-  if (!opts.resourceId && spec.trim() && !spec.includes("=")) opts.resourceId = spec.trim();
+  // A leading bare token (before any key=value) is the resource id or alias.
+  if (!opts.resourceId) {
+    const first = spec.split(/[,;]/)[0]?.trim();
+    if (first && !first.includes("=")) opts.resourceId = first;
+  }
+  // Resolve the registrar alias → real resource id, active-only by default.
+  if (REGISTRY_ALIASES.has(opts.resourceId.toLowerCase())) {
+    opts.resourceId = COMPANY_REGISTRY_RESOURCE;
+    if (active !== false) opts.filters = { [REGISTRY_STATUS_FIELD]: REGISTRY_STATUS_ACTIVE };
+  } else if (opts.resourceId === COMPANY_REGISTRY_RESOURCE && active) {
+    opts.filters = { [REGISTRY_STATUS_FIELD]: REGISTRY_STATUS_ACTIVE };
+  }
   return opts;
 }

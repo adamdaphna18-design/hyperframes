@@ -37,9 +37,13 @@ export function createSource(spec: string): BusinessSource {
     case "datagovil":
     case "datagov":
       return new DataGovIlSource(parseDataGovIlSpec(rest));
+    case "registry":
+    case "rasham":
+      // Registrar of Companies (רשם החברות) preset over data.gov.il.
+      return new DataGovIlSource(parseDataGovIlSpec(rest ? `registry,${rest}` : "registry"));
     default:
       throw new Error(
-        `Unknown source type "${type}". Use csv:, json:, overpass:, web:, or datagovil:.`,
+        `Unknown source type "${type}". Use csv:, json:, overpass:, web:, datagovil:, or registry:.`,
       );
   }
 }

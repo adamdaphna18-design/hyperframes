@@ -79,7 +79,22 @@ Later sources **enrich** earlier ones (fill gaps, append reviews/photos) — nev
 | `overpass:bbox=S,W,N,E`           | …within a bounding box, e.g. `40.6,-74.0,40.7,-73.9`                                                                                                                                                    |
 | `web:https://a.com,https://b.com` | **Ladder-style** server-side scrape (see [everywall/ladder](https://github.com/everywall/ladder)): fetches host-side, extracts schema.org JSON-LD / OpenGraph, rewrites relative image URLs to absolute |
 | `web:https://a.com;ua=googlebot`  | …with a crawler user-agent (`googlebot`/`bingbot`/`facebook`/`chrome`) to slip past soft paywalls                                                                                                       |
-| `datagovil:resource=<id>`         | **data.gov.il** — Israel's government open-data portal (CKAN `datastore_search`); add `q=`/`limit=`                                                                                                     |
+| `registry:q=מאפייה,limit=200`     | **Registrar of Companies (רשם החברות)** via data.gov.il — active companies by default (`active=false` for struck-off); a large pool of Israeli businesses that mostly have **no website** yet           |
+| `datagovil:resource=<id>`         | **data.gov.il** — any other CKAN `datastore_search` resource by id; add `q=`/`limit=`/`active=`                                                                                                         |
+
+### Registrar of Companies (רשם החברות)
+
+`registry:` is a preset over data.gov.il's CKAN API — it resolves to the Registrar resource
+(`f004176c-b85f-4542-8901-7b3176f9a054`) and filters to active companies (`filters={"סטטוס חברה":"פעילה"}`)
+unless you pass `active=false`. The registry's Hebrew columns (`שם חברה`, `מספר חברה`, `מטרת החברה`,
+`שם רחוב`+`מספר בית`+`שם עיר`) are mapped by the normalizer to name / id / description / address; a
+registry record has **no website**, which is exactly the signal to build one. Company number, purpose
+and address come through; phone, category and reviews do not (enrich those with a `csv:`/`overpass:`
+source merged after). Override the resource with `datagovil:resource=<id>` if the id ever changes.
+
+> This environment's network policy may block outbound calls to `data.gov.il` (the request 403s at the
+> proxy); the source is fully unit-tested against the real CKAN request/response shape, and runs live
+> under a network policy that allows `data.gov.il`.
 
 ### Israeli-market data
 

@@ -133,16 +133,34 @@ export function normalizeRecord(
   ] as string[];
 
   const street = str(
-    pick("address", "addr", "location", "street", "full_address", "כתובת", "כתובת_מלאה", "רחוב"),
+    pick(
+      "address",
+      "addr",
+      "location",
+      "street",
+      "full_address",
+      "כתובת",
+      "כתובת_מלאה",
+      "רחוב",
+      "שם רחוב",
+      "שם_רחוב",
+    ),
   );
-  const city = str(pick("city", "town", "עיר", "ישוב", "יישוב", "עיר_ישוב"));
+  // The company registry splits the house number into its own column.
+  const houseNo = str(pick("מספר בית", "מספר_בית", "house_number", "house_no", "בית"));
+  const streetFull =
+    street && houseNo && !street.includes(houseNo) ? `${street} ${houseNo}` : street;
+  const city = str(pick("city", "town", "עיר", "ישוב", "יישוב", "עיר_ישוב", "שם עיר", "שם_עיר"));
   const address =
-    street && city && !street.includes(city) ? `${street}, ${city}` : (street ?? city);
+    streetFull && city && !streetFull.includes(city)
+      ? `${streetFull}, ${city}`
+      : (streetFull ?? city);
 
   const business: Business = {
     id:
-      str(pick("id", "place_id", "osm_id", "מזהה", "מספר_תאגיד", "ח_פ")) ??
-      `${source}-${slugify(name)}-${index}`,
+      str(
+        pick("id", "place_id", "osm_id", "מזהה", "מספר_תאגיד", "ח_פ", "מספר חברה", "מספר_חברה"),
+      ) ?? `${source}-${slugify(name)}-${index}`,
     name,
     category: str(
       pick(
@@ -158,7 +176,19 @@ export function normalizeRecord(
         "תחום",
       ),
     ),
-    description: str(pick("description", "about", "summary", "bio", "תיאור", "אודות")),
+    description: str(
+      pick(
+        "description",
+        "about",
+        "summary",
+        "bio",
+        "תיאור",
+        "אודות",
+        "מטרת החברה",
+        "מטרת_החברה",
+        "מטרת_התאגיד",
+      ),
+    ),
     address,
     phone: str(
       pick(
