@@ -94,7 +94,11 @@ export function contactBlock(business: Business, s: Strings): string {
   const list = rows.length
     ? `<!-- wp:list -->\n<ul class="wp-block-list">${rows.map((r) => `<!-- wp:list-item --><li>${r}</li><!-- /wp:list-item -->`).join("")}</ul>\n<!-- /wp:list -->`
     : paragraph(s.contactFallback);
-  return `${heading(s.visitHeading(business.name))}\n${list}`;
+  // OSM/Leaflet map via the theme's [bsb_map] shortcode (see functions.php).
+  const map = business.location
+    ? `\n<!-- wp:shortcode -->[bsb_map lat="${business.location.lat}" lon="${business.location.lon}" label="${esc(business.name)}"]<!-- /wp:shortcode -->`
+    : "";
+  return `${heading(s.visitHeading(business.name))}\n${list}${map}`;
 }
 
 /** Full block body for the Home page. */

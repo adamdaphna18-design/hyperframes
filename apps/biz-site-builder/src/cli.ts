@@ -18,6 +18,9 @@ interface ParsedArgs {
   market?: string;
   wpTheme?: string;
   livePlugins: boolean;
+  geocode: boolean;
+  geocodeEmail?: string;
+  baseUrl?: string;
   help: boolean;
 }
 
@@ -34,6 +37,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     budget: null,
     resume: false,
     livePlugins: false,
+    geocode: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -85,6 +89,15 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--live-plugins":
         args.livePlugins = true;
         break;
+      case "--geocode":
+        args.geocode = true;
+        break;
+      case "--geocode-email":
+        if (argv[++i]) args.geocodeEmail = argv[i];
+        break;
+      case "--base-url":
+        if (argv[++i]) args.baseUrl = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -125,6 +138,9 @@ Options:
       --market <name>   Market hint; "israel" → Hebrew (RTL)
       --wp-theme <slug> Base WordPress theme to extend (default: twentytwentyfour)
       --live-plugins    Augment plugin choices via the WordPress.org plugins API
+      --geocode         Geocode addresses missing coordinates via OSM Nominatim (adds a map)
+      --geocode-email <e>  Contact string for Nominatim's User-Agent
+      --base-url <url>  Host URL for sitemap.xml / robots.txt (default: https://example.com)
   -h, --help            Show this help
 
 Output:
@@ -182,6 +198,9 @@ async function main(): Promise<void> {
       market: args.market,
       wpBaseTheme: args.wpTheme,
       livePlugins: args.livePlugins,
+      geocode: args.geocode,
+      geocodeEmail: args.geocodeEmail,
+      baseUrl: args.baseUrl,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)

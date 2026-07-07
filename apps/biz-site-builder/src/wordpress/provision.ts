@@ -51,6 +51,12 @@ cp -R "theme/\${CHILD_THEME}" "$(wp theme path --dir --allow-root)/\${CHILD_THEM
   cp -R "theme/\${CHILD_THEME}" "wp-content/themes/\${CHILD_THEME}"
 wp theme activate "\${CHILD_THEME}" --allow-root
 
+# 3b. Must-use plugins (schema.org structured data) — auto-activate
+if [ -d mu-plugins ]; then
+  mkdir -p wp-content/mu-plugins
+  cp -R mu-plugins/. wp-content/mu-plugins/
+fi
+
 # 4. Plugins from the WordPress.org directory
 ${pluginInstalls || "# (no extra plugins resolved)"}
 

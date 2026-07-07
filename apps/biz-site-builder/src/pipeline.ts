@@ -9,7 +9,9 @@ import { detectWebsite, verifyLive } from "./website/detect.ts";
 import { generateSite, siteSlug } from "./generate/site.ts";
 import { generateVideo, videoSlug } from "./generate/video.ts";
 import { generateIndexHtml, generateIndexJson, type ListingEntry } from "./generate/listing.ts";
+import { generateRobots, generateSitemap } from "./generate/sitemap.ts";
 import { generateWordPressBundle } from "./wordpress/bundle.ts";
+import { geocodeAddress } from "./sources/geocode.ts";
 import { createRuntime } from "./workflow/runtime.ts";
 import { Journal } from "./workflow/journal.ts";
 
@@ -40,6 +42,12 @@ export interface BuildOptions {
   locale?: LocaleCode;
   /** Market hint, e.g. "israel" → Hebrew. */
   market?: string;
+  /** Geocode addresses lacking coordinates via OpenStreetMap Nominatim. */
+  geocode?: boolean;
+  /** Contact string for Nominatim's required User-Agent. */
+  geocodeEmail?: string;
+  /** Base URL where <out> will be hosted (for sitemap.xml / robots.txt). */
+  baseUrl?: string;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
@@ -98,7 +106,7 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
   const sitesDir = join(opts.outDir, "sites");
   const videosDir = join(opts.outDir, "videos");
 
-  // ── Phase 2: detect website + resolve locale (concurrent, resumable) ──
+  // ── Phase 2: detect website + geocode + resolve locale (concurrent, resumable) ──
   const detected = (await rt.pipeline(businesses, async (_prev, business) => {
     const status = await rt.step(`detect/${business.id}`, async () => {
       let s = detectWebsite(business);
@@ -107,6 +115,12 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
       }
       return s;
     });
+    if (opts.geocode && !business.location && business.address) {
+      const point = await rt.step(`geocode/${business.id}`, () =>
+        geocodeAddress(business.address!, { email: opts.geocodeEmail, fetchImpl: opts.fetchImpl }),
+      );
+      if (point) business.location = point;
+    }
     const locale = resolveLocale(business, { override: opts.locale, market: opts.market });
     return { business, status, locale } satisfies Detected;
   })) as Detected[];
@@ -194,6 +208,12 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
     "utf8",
   );
   await writeFile(join(opts.outDir, "index.json"), generateIndexJson(entries), "utf8");
+
+  // sitemap.xml + robots.txt for crawlability of the directory.
+  const baseUrl = opts.baseUrl ?? "https://example.com";
+  await writeFile(join(opts.outDir, "sitemap.xml"), generateSitemap(entries, baseUrl), "utf8");
+  await writeFile(join(opts.outDir, "robots.txt"), generateRobots(baseUrl), "utf8");
+
   if (opts.resume) await journal.save(journalPath, rt.runId);
 
   const localesUsed: Record<string, number> = {};

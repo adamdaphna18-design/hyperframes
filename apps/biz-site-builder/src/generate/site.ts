@@ -2,6 +2,8 @@ import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import { bestReview, esc, initials, outputSlug, paletteFor, stars, taglineFor } from "./util.ts";
+import { jsonLdScript } from "./schema.ts";
+import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 
 /**
  * Generate a self-contained, responsive one-page website for a business from
@@ -72,6 +74,8 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
     <meta property="og:title" content="${esc(business.name)}" />
     <meta property="og:description" content="${esc(tagline)}" />
     ${business.images[0] ? `<meta property="og:image" content="${esc(business.images[0])}" />` : ""}
+    ${jsonLdScript(business, s)}
+    ${hasMap(business) ? leafletAssets() : ""}
     <style>
       :root {
         --accent: ${p.accent};
@@ -165,6 +169,7 @@ export function generateSite(business: Business, s: Strings = stringsFor("en")):
           <ul>
           ${contactRows || `<li><span>${esc(s.contact)}</span><span>${esc(s.contactFallback)}</span></li>`}
           </ul>
+          ${business.location ? `<div style="margin-top:28px">${leafletMap(business.location, business.name)}</div>` : ""}
         </div>
       </section>
     </main>

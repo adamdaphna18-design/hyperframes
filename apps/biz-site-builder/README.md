@@ -44,14 +44,16 @@ bun run src/cli.ts build \
 Every site-less business gets a directory you can deploy to any WordPress host. It integrates the
 WordPress ecosystem end to end:
 
-| File                      | Purpose                                                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `content.wxr.xml`         | WordPress **WXR** import — Home / About / Reviews / Contact pages (Gutenberg blocks) + reviews as approved comments  |
-| `theme/<slug>/`           | A **block child theme** of the base theme: `theme.json` palette from the brand colour + a `front-page.html` template |
-| `provision.sh`            | **WP-CLI** script: download core, install the language pack (`he_IL` for Israel), theme, plugins, and import content |
-| `composer.json`           | **roots/wordpress + wpackagist** dependencies (the Composer path to the same site)                                   |
-| `plugins.json`            | Resolved **WordPress.org** plugin slugs + rationale                                                                  |
-| `wp-cli.yml`, `README.md` | WP-CLI config and three ways to deploy                                                                               |
+| File                         | Purpose                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `content.wxr.xml`            | WordPress **WXR** import — Home / About / Reviews / Contact pages (Gutenberg blocks) + reviews as approved comments  |
+| `theme/<slug>/`              | A **block child theme** of the base theme: `theme.json` palette from the brand colour + a `front-page.html` template |
+| `provision.sh`               | **WP-CLI** script: download core, install the language pack (`he_IL` for Israel), theme, plugins, and import content |
+| `composer.json`              | **roots/wordpress + wpackagist** dependencies (the Composer path to the same site)                                   |
+| `mu-plugins/*-schema.php`    | Must-use plugin emitting **schema.org LocalBusiness** JSON-LD in `wp_head` (SEO)                                     |
+| `theme/<slug>/functions.php` | `[bsb_map]` shortcode — **Leaflet + OpenStreetMap** map (only when the business has coordinates)                     |
+| `plugins.json`               | Resolved **WordPress.org** plugin slugs + rationale                                                                  |
+| `wp-cli.yml`, `README.md`    | WP-CLI config and three ways to deploy                                                                               |
 
 Plugins are resolved by business category against a curated WordPress.org map (SEO, contact form,
 cache always; reservations for restaurants, WooCommerce for retail, appointments for salons/clinics,
@@ -82,6 +84,21 @@ Later sources **enrich** earlier ones (fill gaps, append reviews/photos) — nev
 A business "has a website" only if it lists a **real, owned** URL. Facebook / Instagram / Yelp /
 Google-Maps / Linktree links count as _not_ a website — those businesses still get one built. With
 `--verify-live`, listed URLs are HTTP-checked and **dead links** fall back to needing a site.
+
+## Local SEO & maps
+
+Every generated site is built for local search and closes the loop with the scraper (which _reads_
+this same data):
+
+- **schema.org LocalBusiness JSON-LD** — injected into the static site `<head>` and, for WordPress,
+  via a `mu-plugin` in `wp_head`. Includes `aggregateRating` + `review[]` from community reviews so
+  results can show star ratings (Google Rich Results / Bing).
+- **Leaflet + OpenStreetMap map** — a self-hosted, key-free interactive map on the contact section
+  when the business has coordinates (static site inline; WordPress via a `[bsb_map]` shortcode).
+- **Nominatim geocoding** (`--geocode`) — fills missing coordinates from the address via
+  OpenStreetMap Nominatim, so address-only businesses still get a map. Respects Nominatim's policy
+  (descriptive User-Agent via `--geocode-email`, geocode sparingly).
+- **sitemap.xml + robots.txt** — written to `<out>` for crawlability; set the host with `--base-url`.
 
 ## Localization (Israel market → Hebrew)
 
@@ -115,6 +132,9 @@ Workflow tool and its open re-implementations (odw, open-dynamic-workflows): `st
     --market <name>       Market hint; "israel" → Hebrew
     --wp-theme <slug>     Base WordPress theme to extend (default: twentytwentyfour)
     --live-plugins        Augment plugin choices via the WordPress.org plugins API
+    --geocode             Geocode missing coordinates via OSM Nominatim (adds a map)
+    --geocode-email <e>   Contact string for Nominatim's User-Agent
+    --base-url <url>      Host URL for sitemap.xml / robots.txt
 -h, --help
 ```
 
