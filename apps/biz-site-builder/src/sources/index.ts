@@ -3,11 +3,13 @@ import { CsvSource } from "./csv.ts";
 import { JsonSource } from "./json.ts";
 import { OverpassSource, parseOverpassSpec } from "./overpass.ts";
 import { parseWebSpec, WebSource } from "./web.ts";
+import { DataGovIlSource, parseDataGovIlSpec } from "./datagovil.ts";
 
 export { CsvSource } from "./csv.ts";
 export { JsonSource } from "./json.ts";
 export { OverpassSource } from "./overpass.ts";
 export { WebSource } from "./web.ts";
+export { DataGovIlSource } from "./datagovil.ts";
 export { normalizeRecord, slugify } from "./normalize.ts";
 
 /**
@@ -32,8 +34,13 @@ export function createSource(spec: string): BusinessSource {
     case "web":
     case "url":
       return new WebSource(parseWebSpec(rest));
+    case "datagovil":
+    case "datagov":
+      return new DataGovIlSource(parseDataGovIlSpec(rest));
     default:
-      throw new Error(`Unknown source type "${type}". Use csv:, json:, overpass:, or web:.`);
+      throw new Error(
+        `Unknown source type "${type}". Use csv:, json:, overpass:, web:, or datagovil:.`,
+      );
   }
 }
 

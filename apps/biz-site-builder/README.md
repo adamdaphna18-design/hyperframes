@@ -79,6 +79,17 @@ Later sources **enrich** earlier ones (fill gaps, append reviews/photos) — nev
 | `overpass:bbox=S,W,N,E`           | …within a bounding box, e.g. `40.6,-74.0,40.7,-73.9`                                                                                                                                                    |
 | `web:https://a.com,https://b.com` | **Ladder-style** server-side scrape (see [everywall/ladder](https://github.com/everywall/ladder)): fetches host-side, extracts schema.org JSON-LD / OpenGraph, rewrites relative image URLs to absolute |
 | `web:https://a.com;ua=googlebot`  | …with a crawler user-agent (`googlebot`/`bingbot`/`facebook`/`chrome`) to slip past soft paywalls                                                                                                       |
+| `datagovil:resource=<id>`         | **data.gov.il** — Israel's government open-data portal (CKAN `datastore_search`); add `q=`/`limit=`                                                                                                     |
+
+### Israeli-market data
+
+The normalizer understands **Hebrew field names** (`שם`/`שם עסק`, `רחוב`+`עיר`, `טלפון`, `קטגוריה`,
+`דירוג`, …), so Israeli datasets map to the Business shape without a per-source adapter, and Hebrew
+name/place/phone auto-selects the Hebrew/RTL site. Good free sources: **data.gov.il** (via
+`datagovil:`), **OpenStreetMap** (via `overpass:`), and Hebrew CSV/JSON datasets
+([mluggy/techmap](https://github.com/mluggy/techmap), OpenIsraeliSupermarkets, Israel-Online-Stores,
+company-registry exports) ingested via `csv:`/`json:`. Respect each dataset's licence (e.g. techmap is
+ODbL — attribute Michael Lugassy and share-alike).
 
 ## Website detection
 

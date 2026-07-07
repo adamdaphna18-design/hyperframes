@@ -100,32 +100,95 @@ export function normalizeRecord(
     return undefined;
   };
 
+  // Aliases include Hebrew field names common in Israeli datasets (data.gov.il,
+  // techmap, company registry, supermarket feeds) so they map without a per-source adapter.
   const name =
-    str(pick("name", "business", "business_name", "title", "company")) ?? `Business ${index + 1}`;
+    str(
+      pick(
+        "name",
+        "business",
+        "business_name",
+        "title",
+        "company",
+        "שם",
+        "שם_עסק",
+        "שם עסק",
+        "שם_חברה",
+        "שם חברה",
+        "שם_התאגיד",
+        "שם_מוסד",
+      ),
+    ) ?? `Business ${index + 1}`;
 
-  const lat = num(pick("lat", "latitude", "y"));
-  const lon = num(pick("lon", "lng", "longitude", "x"));
+  const lat = num(pick("lat", "latitude", "y", "קו_רוחב"));
+  const lon = num(pick("lon", "lng", "longitude", "x", "קו_אורך"));
 
-  const website = str(pick("website", "url", "site", "web", "homepage")) ?? null;
+  const website =
+    str(pick("website", "url", "site", "web", "homepage", "אתר", "אתר_אינטרנט", "כתובת_אתר")) ??
+    null;
 
   const images = [
-    ...splitList(pick("images", "photos", "image_urls", "gallery")),
-    ...[str(pick("image", "photo", "logo"))].filter(Boolean),
+    ...splitList(pick("images", "photos", "image_urls", "gallery", "תמונות")),
+    ...[str(pick("image", "photo", "logo", "תמונה", "לוגו"))].filter(Boolean),
   ] as string[];
 
+  const street = str(
+    pick("address", "addr", "location", "street", "full_address", "כתובת", "כתובת_מלאה", "רחוב"),
+  );
+  const city = str(pick("city", "town", "עיר", "ישוב", "יישוב", "עיר_ישוב"));
+  const address =
+    street && city && !street.includes(city) ? `${street}, ${city}` : (street ?? city);
+
   const business: Business = {
-    id: str(pick("id", "place_id", "osm_id")) ?? `${source}-${slugify(name)}-${index}`,
+    id:
+      str(pick("id", "place_id", "osm_id", "מזהה", "מספר_תאגיד", "ח_פ")) ??
+      `${source}-${slugify(name)}-${index}`,
     name,
-    category: str(pick("category", "type", "cuisine", "amenity", "shop", "industry")),
-    description: str(pick("description", "about", "summary", "bio")),
-    address: str(pick("address", "addr", "location", "street", "full_address")),
-    phone: str(pick("phone", "tel", "telephone", "contact", "phone_number")),
-    email: str(pick("email", "mail")),
+    category: str(
+      pick(
+        "category",
+        "type",
+        "cuisine",
+        "amenity",
+        "shop",
+        "industry",
+        "קטגוריה",
+        "סוג",
+        "ענף",
+        "תחום",
+      ),
+    ),
+    description: str(pick("description", "about", "summary", "bio", "תיאור", "אודות")),
+    address,
+    phone: str(
+      pick(
+        "phone",
+        "tel",
+        "telephone",
+        "contact",
+        "phone_number",
+        "טלפון",
+        "מספר_טלפון",
+        "נייד",
+        "פלאפון",
+      ),
+    ),
+    email: str(pick("email", "mail", "אימייל", "מייל", "דואל")),
     website,
-    hours: str(pick("hours", "opening_hours", "open_hours", "hours_of_operation")),
+    hours: str(
+      pick(
+        "hours",
+        "opening_hours",
+        "open_hours",
+        "hours_of_operation",
+        "שעות",
+        "שעות_פתיחה",
+        "שעות_פעילות",
+      ),
+    ),
     images: [...new Set(images)],
-    reviews: parseReviews(pick("reviews", "review", "testimonials")),
-    rating: num(pick("rating", "stars", "score", "avg_rating")),
+    reviews: parseReviews(pick("reviews", "review", "testimonials", "ביקורות")),
+    rating: num(pick("rating", "stars", "score", "avg_rating", "דירוג")),
     source,
   };
 
