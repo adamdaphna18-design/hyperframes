@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { stringsFor } from "../src/i18n/strings.ts";
 import { auditReportHtml, buildAuditReport, comparisonHtml } from "../src/generate/audit.ts";
+import { recommendAiServices } from "../src/generate/opportunities.ts";
 
 const en = stringsFor("en");
 const he = stringsFor("he");
@@ -82,6 +83,42 @@ describe("auditReportHtml", () => {
     const r = buildAuditReport({ html: badHtml, url: "http://shop.example", business }, en);
     expect(r.painPoint).toMatch(/order|book|table/i);
     expect(auditReportHtml(r, { s: en })).toContain(r.painPoint.slice(0, 12));
+  });
+});
+
+describe("AI-service opportunities", () => {
+  test("recommends services anchored to findings, with a discounted bundle", () => {
+    const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, en);
+    const opp = recommendAiServices(r, en);
+    expect(opp.services.length).toBeGreaterThan(1);
+    // Every recommended service maps to an area that actually has a finding.
+    const areas = new Set(r.findings.map((f) => f.area));
+    const anchored = opp.services.every((svc) =>
+      ["seo-content", "receptionist", "lead-qualifier"].includes(svc.key),
+    );
+    expect(anchored).toBe(true);
+    expect(areas.size).toBeGreaterThan(0);
+    // Bundle is cheaper than the naive sum (20% off).
+    const sum = opp.services.reduce((n, x) => n + x.monthly, 0);
+    expect(opp.bundleMonthly).toBeLessThan(sum);
+    expect(opp.currency).toBe("₪");
+  });
+  test("a healthy site gets no upsell (empty set)", () => {
+    const r = buildAuditReport({ html: goodHtml, url: "https://cafe.example" }, en);
+    expect(recommendAiServices(r, en).services).toHaveLength(0);
+  });
+  test("the audit report renders the AI Workforce section when services apply", () => {
+    const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, en);
+    const html = auditReportHtml(r, { s: en });
+    expect(html).toContain("AI Workforce");
+    expect(html).toContain("/mo");
+    // Healthy site → no section.
+    const good = buildAuditReport({ html: goodHtml, url: "https://cafe.example" }, en);
+    expect(auditReportHtml(good, { s: en })).not.toContain("AI Workforce");
+  });
+  test("localizes the AI Workforce section to Hebrew", () => {
+    const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, he);
+    expect(auditReportHtml(r, { s: he })).toContain("צוות AI");
   });
 });
 

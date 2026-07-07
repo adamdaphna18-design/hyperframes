@@ -6,6 +6,7 @@ import { auditSeo } from "../verify/seo.ts";
 import { detectTechStack } from "../website/techstack.ts";
 import { generateQuote } from "./quote.ts";
 import { painPointFor } from "./painpoints.ts";
+import { recommendAiServices } from "./opportunities.ts";
 
 /**
  * Customer-facing **website audit** — the lead-magnet inverse of the site
@@ -326,6 +327,17 @@ export function auditReportHtml(
       .cta .pain { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-weight: 600; }
       .cta .est { font-size: 30px; font-weight: 800; color: #4f46e5; }
       .cta .btn { display: inline-block; margin-top: 14px; background: #4f46e5; color: #fff; text-decoration: none; padding: 13px 26px; border-radius: 999px; font-weight: 700; }
+      .ai { margin-top: 22px; border: 1px solid #cdefd6; border-radius: 14px; overflow: hidden; }
+      .ai .head { background: #16794a; color: #fff; padding: 16px 20px; font-weight: 700; }
+      .ai .body { padding: 20px; }
+      .ai ul { list-style: none; padding: 0; }
+      .ai li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eceef4; }
+      .ai li:last-child { border-bottom: 0; }
+      .ai .svc-name { font-weight: 700; }
+      .ai .svc-pitch { color: #5b6270; font-size: 14px; margin-top: 2px; }
+      .ai .price { white-space: nowrap; font-weight: 800; color: #16794a; }
+      .ai .bundle { margin-top: 14px; text-align: center; font-weight: 800; color: #16794a; }
+      .ai .note { color: #5b6270; font-size: 12px; margin-top: 8px; text-align: center; }
       footer { text-align: center; color: #5b6270; font-size: 13px; margin-top: 24px; }
     </style>
   </head>
@@ -351,10 +363,47 @@ export function auditReportHtml(
       <div class="stack">${t("Services", "שירותים")}: ${report.services.map((x) => esc(x)).join(" · ")}</div>
       <a class="btn" href="#contact">${t("Get started", "בואו נתחיל")}</a>
     </div>
+    ${aiWorkforceSection(report, s)}
     <footer>${t("Automated audit — no site changes were made.", "בדיקה אוטומטית — לא בוצעו שינויים באתר.")}${opts.brand ? ` · ${esc(opts.brand)}` : ""}</footer>
   </body>
 </html>
 `;
+}
+
+/**
+ * The recurring-revenue "AI Workforce" upsell — recommended services anchored to
+ * the audit's findings, rendered as a distinct block below the one-time fix. Empty
+ * string when the site is healthy (no findings → no manufactured upsell).
+ */
+function aiWorkforceSection(report: AuditReport, s: Strings): string {
+  const he = s.code === "he";
+  const t = (en: string, hebrew: string) => (he ? hebrew : en);
+  const opp = recommendAiServices(report, s);
+  if (opp.services.length === 0) return "";
+  const per = t("/mo", "/חודש");
+  const items = opp.services
+    .map(
+      (svc) => `<li>
+        <div><div class="svc-name">${esc(svc.name)}</div><div class="svc-pitch">${esc(svc.pitch)}</div></div>
+        <div class="price">${esc(svc.currency)}${svc.monthly}${per}</div>
+      </li>`,
+    )
+    .join("");
+  const bundle =
+    opp.services.length > 1
+      ? `<div class="bundle">${t("Bundle all", "כל השירותים יחד")}: ${esc(opp.currency)}${opp.bundleMonthly}${per} · ${t("save 20%", "חיסכון 20%")}</div>`
+      : "";
+  return `<div class="ai">
+      <div class="head">${t("AI Workforce — works 24/7 (monthly)", "צוות AI — עובד 24/7 (חודשי)")}</div>
+      <div class="body">
+        <ul>${items}</ul>
+        ${bundle}
+        <div class="note">${t(
+          "Recurring managed services — each addresses an issue found above.",
+          "שירותים מנוהלים חודשיים — כל אחד נותן מענה לבעיה שנמצאה למעלה.",
+        )}</div>
+      </div>
+    </div>`;
 }
 
 /** A row for the side-by-side comparison: does each site pass this check? */

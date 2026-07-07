@@ -123,6 +123,21 @@ platform) plus overall score — a loss-prevention close that flags exactly wher
 behind. Deciding _when_ to run this (which competitor, which lead) is orchestration for the separate
 operational layer; the generator just takes the two URLs.
 
+**AI-workforce upsell.** Below the one-time fix estimate, the report renders a recurring-revenue
+section (`src/generate/opportunities.ts`): each recommended AI service is **anchored to a finding the
+audit actually produced** — an SEO/tech gap → an SEO & Content Agent, a social/mobile gap → a 24/7 AI
+Receptionist, a security/perf/accessibility gap → a Lead Qualifier — priced from a fixed monthly rate
+card with a 20%-off bundle. A healthy site (no findings) gets **no** upsell — recommendations are
+grounded, not manufactured, and no invented traffic/revenue figures are asserted. The report
+_recommends_ these services; actually provisioning a Twilio/LLM agent is stateful, network-bound work
+that belongs to the operational layer.
+
+**Batch mode.** `audit --csv <file>` audits a whole list at once — each row needs a website column
+(English or Hebrew header aliases, same normalizer as the ingest sources), plus an optional
+`competitor` column that triggers the comparison per row. It writes one report per business under
+`<out>/reports/` and a roll-up `<out>/index.html` + `index.json` sorted **worst-score-first** (the
+hottest leads on top), so the operational layer has a ready prospect list to work down.
+
 ## Lead scoring & quotes
 
 Every business gets a deterministic **lead score** (0–100, `src/generate/lead.ts`) — rewarding no

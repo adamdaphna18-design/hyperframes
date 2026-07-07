@@ -1,9 +1,12 @@
 #!/usr/bin/env bun
-import { writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createSource } from "./sources/index.ts";
 import { WebSource } from "./sources/web.ts";
+import { csvToRecords } from "./sources/csv.ts";
+import { normalizeRecord } from "./sources/normalize.ts";
 import { build, type OutputTarget } from "./pipeline.ts";
 import { buildAuditReport, auditReportHtml, comparisonHtml } from "./generate/audit.ts";
+import { outputSlug } from "./generate/util.ts";
 import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
 
 interface ParsedArgs {
@@ -31,6 +34,7 @@ interface ParsedArgs {
   includeWeak: boolean;
   url?: string;
   competitor?: string;
+  csv?: string;
   help: boolean;
 }
 
@@ -131,6 +135,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--competitor":
         if (argv[++i]) args.competitor = argv[i];
         break;
+      case "--csv":
+        if (argv[++i]) args.csv = argv[i];
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -146,8 +153,13 @@ Usage:
   biz-site-builder build --source <type:spec> [--source ...] [options]
   biz-site-builder audit --url <url> [--competitor <url>] [--out report.html] [--locale he] [--brand X]
        Scan a live business site and write a branded audit report (issues → services
-       we sell → estimate → CTA) — a lead magnet for businesses that already have a site.
-       With --competitor, also writes a side-by-side "you vs. them" comparison (FOMO close).
+       we sell → estimate → recurring AI-workforce upsell → CTA) — a lead magnet for
+       businesses that already have a site. With --competitor, also writes a side-by-side
+       "you vs. them" comparison (FOMO close).
+  biz-site-builder audit --csv <file> [--out dir] [--locale he] [--brand X]
+       Batch-audit every business in a CSV (website column required; optional
+       "competitor" column). Writes one report per row + a roll-up index
+       (worst score / hottest lead first).
 
 Sources (repeatable, merged in order — later sources enrich earlier ones):
   csv:./businesses.csv              Ingest a CSV export
@@ -248,6 +260,144 @@ async function runAudit(args: ParsedArgs): Promise<void> {
   }
 }
 
+/** Read a competitor URL from a loose CSV record (English + Hebrew column names). */
+function competitorOf(rec: Record<string, unknown>): string | undefined {
+  for (const [k, v] of Object.entries(rec)) {
+    if (/^(competitor|rival|מתחרה)$/i.test(k.trim()) && typeof v === "string" && v.trim())
+      return v.trim();
+  }
+  return undefined;
+}
+
+interface BatchRow {
+  name: string;
+  url: string;
+  score: number;
+  platform?: string;
+  estimate: { kind: string; min: number; max: number; currency: string };
+  services: string[];
+  reportPath: string;
+}
+
+/** `audit --csv <file>`: audit every business in a CSV, with a roll-up index. */
+async function runBatchAudit(args: ParsedArgs): Promise<void> {
+  const s = stringsFor(auditLocale(args));
+  let text: string;
+  try {
+    text = await readFile(args.csv!, "utf8");
+  } catch (err) {
+    process.stderr.write(`Error: could not read ${args.csv} (${(err as Error).message}).\n`);
+    process.exitCode = 1;
+    return;
+  }
+  const records = csvToRecords(text);
+  const outDir = args.out === ".out" ? "audit-batch" : args.out;
+  await mkdir(`${outDir}/reports`, { recursive: true });
+
+  // Pre-collect the businesses so WebSource has a non-empty URL list to seed with.
+  const jobs = records
+    .map((rec, i) => ({ rec, i, business: normalizeRecord(rec, `csv:${args.csv}`, i) }))
+    .filter((j) => Boolean(j.business.website?.trim()));
+  if (jobs.length === 0) {
+    process.stderr.write("Error: no rows in the CSV have a website column.\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  const src = new WebSource({ urls: jobs.map((j) => j.business.website!.trim()) });
+  const rows: BatchRow[] = [];
+  let scanned = 0;
+  for (const { rec, business } of jobs) {
+    const url = business.website!.trim();
+    const page = await src.fetchPage(url);
+    if (!page || page.status >= 400) {
+      process.stderr.write(
+        `Skipping ${business.name} — could not fetch ${url} (status ${page?.status ?? "unreachable"}).\n`,
+      );
+      continue;
+    }
+    const report = buildAuditReport({ html: page.html, url: page.finalUrl, business }, s);
+    const slug = outputSlug(business);
+    const reportPath = `reports/${slug}.html`;
+    await writeFile(
+      `${outDir}/${reportPath}`,
+      auditReportHtml(report, { s, brand: args.brand }),
+      "utf8",
+    );
+
+    // Optional per-row competitor comparison.
+    const compUrl = competitorOf(rec);
+    if (compUrl) {
+      const compPage = await src.fetchPage(compUrl);
+      if (compPage && compPage.status < 400) {
+        const compReport = buildAuditReport({ html: compPage.html, url: compPage.finalUrl }, s);
+        await writeFile(
+          `${outDir}/reports/${slug}.compare.html`,
+          comparisonHtml(report, compReport, { s, brand: args.brand }),
+          "utf8",
+        );
+      }
+    }
+
+    rows.push({
+      name: report.businessName,
+      url: report.url,
+      score: report.score,
+      platform: report.platform,
+      estimate: report.estimate,
+      services: report.services,
+      reportPath,
+    });
+    scanned++;
+  }
+
+  rows.sort((a, b) => a.score - b.score); // worst (hottest lead) first
+  await writeFile(`${outDir}/index.json`, JSON.stringify({ businesses: rows }, null, 2), "utf8");
+  await writeFile(`${outDir}/index.html`, batchIndexHtml(rows, s), "utf8");
+  process.stdout.write(
+    `\n✓ ${outDir}/index.html — audited ${scanned}/${jobs.length} businesses (worst score first).\n`,
+  );
+}
+
+/** A minimal, localized roll-up directory of the batch audit. */
+function batchIndexHtml(rows: BatchRow[], s: import("./i18n/strings.ts").Strings): string {
+  const he = s.code === "he";
+  const t = (en: string, hebrew: string) => (he ? hebrew : en);
+  const esc = (x: string) => x.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const body = rows
+    .map((r) => {
+      const color = r.score >= 80 ? "#16a34a" : r.score >= 55 ? "#d97706" : "#dc2626";
+      return `<tr>
+        <td><a href="${esc(r.reportPath)}">${esc(r.name)}</a><div class="u">${esc(r.url)}</div></td>
+        <td style="color:${color};font-weight:800">${r.score}</td>
+        <td>${r.platform ? esc(r.platform) : "—"}</td>
+        <td>${esc(r.estimate.currency)}${r.estimate.min}–${esc(r.estimate.currency)}${r.estimate.max}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<!doctype html>
+<html lang="${s.lang}" dir="${s.dir}">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${t("Batch audit", "סריקה קבוצתית")}</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; color: #1f2430; }
+    h1 { font-size: 22px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { text-align: start; padding: 12px; border-bottom: 1px solid #eceef4; }
+    .u { color: #5b6270; font-size: 13px; word-break: break-all; }
+    a { color: #4f46e5; text-decoration: none; font-weight: 700; }
+  </style></head>
+  <body>
+    <h1>${t("Batch audit — worst score first", "סריקה קבוצתית — הציון הנמוך קודם")}</h1>
+    <table>
+      <thead><tr><th>${t("Business", "עסק")}</th><th>${t("Score", "ציון")}</th><th>${t("Platform", "פלטפורמה")}</th><th>${t("Estimate", "הערכה")}</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </body>
+</html>
+`;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.command === "help") {
@@ -255,7 +405,8 @@ async function main(): Promise<void> {
     return;
   }
   if (args.command === "audit") {
-    await runAudit(args);
+    if (args.csv) await runBatchAudit(args);
+    else await runAudit(args);
     return;
   }
   if (args.command !== "build") {
