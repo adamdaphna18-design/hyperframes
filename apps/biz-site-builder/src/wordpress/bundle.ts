@@ -9,6 +9,7 @@ import { generateWxr } from "./wxr.ts";
 import { generateTheme, themeSlug } from "./theme.ts";
 import { generateProvisionScript } from "./provision.ts";
 import { generateComposerJson } from "./composer.ts";
+import { generateProductsCsv } from "./woocommerce.ts";
 import { resolvePlugins, type ResolvedPlugin } from "./plugins.ts";
 
 export interface BundleFile {
@@ -84,6 +85,11 @@ export async function generateWordPressBundle(
       path: `mu-plugins/${slugify(business.name)}-analytics.php`,
       content: analyticsMuPlugin(business, opts.analytics),
     });
+  }
+
+  // Retail businesses (WooCommerce resolved) get a starter product CSV.
+  if (plugins.some((p) => p.slug === "woocommerce")) {
+    files.push({ path: "woocommerce/products.csv", content: generateProductsCsv(business, s) });
   }
 
   files.push({

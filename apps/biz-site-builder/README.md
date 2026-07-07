@@ -44,16 +44,17 @@ bun run src/cli.ts build \
 Every site-less business gets a directory you can deploy to any WordPress host. It integrates the
 WordPress ecosystem end to end:
 
-| File                         | Purpose                                                                                                              |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `content.wxr.xml`            | WordPress **WXR** import — Home / About / Reviews / Contact pages (Gutenberg blocks) + reviews as approved comments  |
-| `theme/<slug>/`              | A **block child theme** of the base theme: `theme.json` palette from the brand colour + a `front-page.html` template |
-| `provision.sh`               | **WP-CLI** script: download core, install the language pack (`he_IL` for Israel), theme, plugins, and import content |
-| `composer.json`              | **roots/wordpress + wpackagist** dependencies (the Composer path to the same site)                                   |
-| `mu-plugins/*-schema.php`    | Must-use plugin emitting **schema.org LocalBusiness** JSON-LD in `wp_head` (SEO)                                     |
-| `theme/<slug>/functions.php` | `[bsb_map]` shortcode — **Leaflet + OpenStreetMap** map (only when the business has coordinates)                     |
-| `plugins.json`               | Resolved **WordPress.org** plugin slugs + rationale                                                                  |
-| `wp-cli.yml`, `README.md`    | WP-CLI config and three ways to deploy                                                                               |
+| File                         | Purpose                                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `content.wxr.xml`            | WordPress **WXR** import — Home / About / Reviews / Contact pages (Gutenberg blocks) + reviews as approved comments        |
+| `theme/<slug>/`              | A **block child theme** of the base theme: `theme.json` palette from the brand colour + a `front-page.html` template       |
+| `provision.sh`               | **WP-CLI** script: download core, install the language pack (`he_IL` for Israel), theme, plugins, and import content       |
+| `composer.json`              | **roots/wordpress + wpackagist** dependencies (the Composer path to the same site)                                         |
+| `mu-plugins/*-schema.php`    | Must-use plugin emitting **schema.org LocalBusiness** JSON-LD in `wp_head` (SEO)                                           |
+| `theme/<slug>/functions.php` | `[bsb_map]` shortcode — **Leaflet + OpenStreetMap** map (only when the business has coordinates)                           |
+| `woocommerce/products.csv`   | **WooCommerce** starter catalog (draft products seeded from photos) — retail businesses only; import via Products → Import |
+| `plugins.json`               | Resolved **WordPress.org** plugin slugs + rationale                                                                        |
+| `wp-cli.yml`, `README.md`    | WP-CLI config and three ways to deploy                                                                                     |
 
 Plugins are resolved by business category against a curated WordPress.org map (SEO, contact form,
 cache always; reservations for restaurants, WooCommerce for retail, appointments for salons/clinics,
@@ -166,14 +167,18 @@ Workflow tool and its open re-implementations (odw, open-dynamic-workflows): `st
 -h, --help
 ```
 
-## Quality gate — accessibility
+## Quality gates
 
-`bun run verify:a11y` builds the sample sites and runs **axe-core**
-([dequelabs/axe-core](https://github.com/dequelabs/axe-core)) over every generated page in headless
-Chromium, failing on any **critical** or **serious** violation. The report logic
-(`src/verify/axe.ts`) is unit-tested; the browser runner loads Playwright + axe-core dynamically, so
-it's a dev/CI gate, not a build-time dependency. The generated palette is tuned to pass WCAG AA
-contrast for every brand hue.
+- **Accessibility** — `bun run verify:a11y` builds the sample sites and runs **axe-core**
+  ([dequelabs/axe-core](https://github.com/dequelabs/axe-core)) over every page in headless Chromium,
+  failing on any **critical** or **serious** violation. The report logic (`src/verify/axe.ts`) is
+  unit-tested; Playwright + axe-core load dynamically, so it's a dev/CI gate, not a build dependency.
+  The generated palette is tuned to pass WCAG AA contrast for every brand hue.
+- **SEO** — `bun run verify:seo` runs a deterministic on-page SEO audit (`src/verify/seo.ts`) over
+  every generated page: `<title>` + length, meta description + length, exactly one `<h1>`,
+  `<html lang>`, viewport, JSON-LD, non-empty image `alt`, OG tags and canonical. No browser — this is
+  the durable half of a Lighthouse SEO run, fast and stable enough to gate on (live Lighthouse
+  _performance_ is environment-sensitive and unsuitable as a hard gate here).
 
 ## Development
 
