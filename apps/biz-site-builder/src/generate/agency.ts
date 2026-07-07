@@ -1,6 +1,6 @@
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
-import { esc } from "./util.ts";
+import { esc, safeUrl } from "./util.ts";
 import { siteBuildMenu } from "./quote.ts";
 import { aiServiceMenu } from "./opportunities.ts";
 
@@ -96,7 +96,7 @@ export function generateAgencyPage(info: AgencyInfo, s: Strings = stringsFor("en
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${esc(info.name)} — ${t("Websites & AI for local business", "אתרים ו-AI לעסקים מקומיים")}</title>
     <meta name="description" content="${t("We build websites and install a 24/7 AI workforce for local businesses.", "אנחנו בונים אתרים ומתקינים צוות AI 24/7 לעסקים מקומיים.")}" />
-    ${info.url ? `<link rel="canonical" href="${esc(info.url)}" />` : ""}
+    ${info.url ? `<link rel="canonical" href="${esc(safeUrl(info.url))}" />` : ""}
     <meta property="og:title" content="${esc(info.name)}" />
     <meta property="og:type" content="website" />
     <style>

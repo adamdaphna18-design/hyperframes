@@ -1,7 +1,17 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
-import { bestReview, esc, initials, outputSlug, paletteFor, stars, taglineFor } from "./util.ts";
+import {
+  bestReview,
+  cssUrl,
+  esc,
+  initials,
+  outputSlug,
+  paletteFor,
+  safeUrl,
+  stars,
+  taglineFor,
+} from "./util.ts";
 import { jsonLdScripts } from "./schema.ts";
 import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
@@ -66,7 +76,7 @@ export function generateSite(
           .slice(0, 8)
           .map(
             (src, i) =>
-              `<figure><img loading="lazy" src="${esc(src)}" alt="${esc(`${altBase}${i > 0 ? ` (${i + 1})` : ""}`)}" /></figure>`,
+              `<figure><img loading="lazy" src="${esc(safeUrl(src, { allowData: true }))}" alt="${esc(`${altBase}${i > 0 ? ` (${i + 1})` : ""}`)}" /></figure>`,
           )
           .join("\n        ")}
       </section>`
@@ -104,7 +114,7 @@ export function generateSite(
     .join("\n          ");
 
   const hero = business.images[0]
-    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${esc(business.images[0])}');`
+    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${cssUrl(business.images[0])}');`
     : `background: radial-gradient(120% 120% at 30% 20%, ${p.accentDeep}, #0a0a0f);`;
 
   return `<!doctype html>

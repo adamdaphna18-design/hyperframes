@@ -3,6 +3,7 @@ import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import {
   bestReview,
+  cssUrl,
   esc,
   initials,
   jsStr,
@@ -99,7 +100,7 @@ export function generateVideo(
           hero
             ? `<!-- Scene 2: hero image -->
         <div class="scene" data-scene="image" style="opacity:0">
-          <div class="hero-img" style="background-image:url('${esc(hero)}')"></div>
+          <div class="hero-img" style="background-image:url('${cssUrl(hero)}')"></div>
           <div style="position:relative;margin-top:auto">
             <div class="name" style="font-size:72px">${esc(business.name)}</div>
           </div>

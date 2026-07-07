@@ -1,5 +1,5 @@
 import type { Business } from "../types.ts";
-import { taglineFor } from "./util.ts";
+import { safeUrl, taglineFor } from "./util.ts";
 import { stringsFor, type Strings } from "../i18n/strings.ts";
 import { openingHoursSpecification, parseOpeningHours } from "./hours.ts";
 
@@ -67,8 +67,13 @@ export function localBusinessJsonLd(
     const cuisines = cuisineOf(business);
     if (cuisines.length) node.servesCuisine = cuisines;
   }
-  if (business.website) node.url = business.website;
-  if (business.images.length) node.image = business.images.slice(0, 6);
+  const url = safeUrl(business.website);
+  if (url && url !== "#") node.url = url;
+  const images = business.images
+    .map((u) => safeUrl(u, { allowData: true }))
+    .filter((u) => u && u !== "#")
+    .slice(0, 6);
+  if (images.length) node.image = images;
   if (business.phone) node.telephone = business.phone;
   if (business.email) node.email = business.email;
   if (business.address)

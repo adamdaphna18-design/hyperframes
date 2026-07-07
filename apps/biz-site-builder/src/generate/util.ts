@@ -15,6 +15,44 @@ export function esc(input: string | undefined | null): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Neutralise a URL for use in an `href`/`src`: scraped business data can carry a
+ * `javascript:` (or other active) scheme that `esc()` does NOT stop — esc only
+ * handles quotes/brackets, so `href="javascript:…"` would still execute on click.
+ * Relative paths and anchors (no scheme) pass through; an absolute URL must use an
+ * allowed scheme or it collapses to `#`. Control chars (which browsers strip from
+ * schemes — `jav\tascript:`) are removed before the check. Wrap the result in
+ * `esc()` too, for the surrounding attribute quotes.
+ */
+export function safeUrl(
+  input: string | undefined | null,
+  opts: { allowData?: boolean } = {},
+): string {
+  // Strip ASCII control chars (browsers ignore them inside a scheme, e.g. "jav\tascript:").
+  const url = String(input ?? "")
+    .trim()
+    // eslint-disable-next-line no-control-regex -- intentional: strip URL-scheme obfuscation
+    .replace(/[\u0000-\u001f]/g, "");
+  if (!url) return "";
+  const scheme = url.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+  if (!scheme) return url; // relative / anchor / query — no scheme to abuse
+  const allowed = new Set(["http", "https", "mailto", "tel", ...(opts.allowData ? ["data"] : [])]);
+  return allowed.has(scheme) ? url : "#";
+}
+
+/**
+ * A URL safe to drop inside a CSS `url('…')`: scheme-checked like `safeUrl`, then
+ * quotes / parens / backslash / whitespace percent-encoded so it can't break out
+ * of the `url()` in either a `<style>` block or an inline `style="…"` attribute
+ * (where the browser decodes HTML entities before the CSS parser runs).
+ */
+export function cssUrl(input: string | undefined | null): string {
+  return safeUrl(input, { allowData: true }).replace(
+    /["'()\\\s]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`,
+  );
+}
+
 /** Escape a string for embedding inside a single-quoted JS string literal. */
 export function jsStr(input: string | undefined | null): string {
   if (input === undefined || input === null) return "";

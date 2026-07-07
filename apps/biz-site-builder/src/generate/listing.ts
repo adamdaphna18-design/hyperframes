@@ -1,7 +1,7 @@
 import type { Business, WebsiteStatus } from "../types.ts";
 import type { LocaleCode, Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
-import { esc, initials, paletteFor, stars } from "./util.ts";
+import { esc, initials, paletteFor, safeUrl, stars } from "./util.ts";
 import { extractKeywords } from "./keywords.ts";
 
 export interface ListingEntry {
@@ -65,7 +65,7 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
       e.videoPath && `<a class="pill ghost" href="${esc(e.videoPath)}">${esc(s.promoVideo)}</a>`,
       e.status.hasWebsite &&
         e.status.url &&
-        `<a class="pill ghost" href="${esc(e.status.url)}" target="_blank" rel="noopener">${esc(s.existingSite)}</a>`,
+        `<a class="pill ghost" href="${esc(safeUrl(e.status.url))}" target="_blank" rel="noopener">${esc(s.existingSite)}</a>`,
     ]
       .filter(Boolean)
       .join(" ");

@@ -1,7 +1,7 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
-import { esc, taglineFor } from "./util.ts";
+import { esc, safeUrl, taglineFor } from "./util.ts";
 
 /**
  * On-page SEO + social head metadata: keyword-rich <title>/description, Open
@@ -67,8 +67,10 @@ function tag(attr: "property" | "name", key: string, content: string): string {
 export function headMeta(business: Business, ctx: MetaContext = {}): string {
   const s = ctx.locale ?? stringsFor("en");
   const desc = seoDescription(business, ctx);
-  // Prefer the generated branded share card over a raw photo.
-  const image = ctx.ogImage ?? business.images[0];
+  // Prefer the generated branded share card over a raw photo; a scraped photo URL
+  // is scheme-checked so a `javascript:`/other active URL never becomes og:image.
+  const photo = safeUrl(business.images[0], { allowData: true });
+  const image = ctx.ogImage ?? (photo && photo !== "#" ? photo : undefined);
   const base = ctx.baseUrl?.replace(/\/+$/, "");
   const canonical = base && ctx.path ? `${base}/${ctx.path}` : undefined;
 
