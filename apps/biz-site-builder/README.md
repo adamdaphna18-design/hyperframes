@@ -155,6 +155,19 @@ at build time** and injects nothing when unconfigured (no fake bubble); the bubb
 sites automatically. The live agent backend is the operator's (stateful) responsibility — same boundary
 as a GA id.
 
+## Deterministic optimizer (search with a verifiable reward)
+
+`src/generate/optimize.ts` is the **generate → evaluate against a verifiable reward → keep the best**
+core of the LLM-search family (FunSearch, Eureka) with the LLM removed: those systems have a model
+_propose_ candidates and a deterministic evaluator _score_ them; this repo keeps the evaluate-and-select
+half and enumerates the candidate space directly, so it stays deterministic and offline (no model, no
+network, no randomness). First use: each business's link/accent **ink colour** is now the _most vivid_
+shade that still clears **WCAG AA (4.5:1)** on its own page background — `searchBest` over a lightness
+grid scored by real WCAG contrast — instead of the old hand-fixed `25%` guess. Verified: all 360 hues
+clear AA, and the axe gate stays green with punchier links (e.g. a blue hue moved 25% → 45% lightness).
+`searchBest(candidates, reward)` is generic, so the same harness can later tune other choices against
+the SEO/a11y rewards the repo already computes.
+
 ## Website detection
 
 A business "has a website" only if it lists a **real, owned** URL. Facebook / Instagram / Yelp /

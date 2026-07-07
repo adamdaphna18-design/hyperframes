@@ -1,6 +1,7 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { slugify } from "../sources/normalize.ts";
+import { optimalInk } from "./optimize.ts";
 
 export { slugify };
 
@@ -93,7 +94,9 @@ export function paletteFor(business: Business): Palette {
     hue,
     accent: `hsl(${hue} 82% 56%)`,
     accentDeep: `hsl(${hue} 74% 42%)`,
-    accentInk: `hsl(${hue} 68% 25%)`,
+    // Most vivid link/text ink that still clears WCAG AA on --bg — searched, not
+    // guessed (see optimize.ts). Replaces the old hand-fixed `25%` lightness.
+    accentInk: optimalInk(hue),
     ink: "#12141a",
     bg: `hsl(${hue} 30% 97%)`,
     surface: "#ffffff",
