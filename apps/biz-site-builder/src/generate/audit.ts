@@ -5,6 +5,7 @@ import { esc } from "./util.ts";
 import { auditSeo } from "../verify/seo.ts";
 import { detectTechStack } from "../website/techstack.ts";
 import { generateQuote } from "./quote.ts";
+import { painPointFor } from "./painpoints.ts";
 
 /**
  * Customer-facing **website audit** — the lead-magnet inverse of the site
@@ -48,6 +49,8 @@ export interface AuditReport {
   /** Distinct services recommended, most relevant first. */
   services: string[];
   estimate: { kind: "redesign" | "optimize"; min: number; max: number; currency: string };
+  /** Industry-specific cost-of-inaction line. */
+  painPoint: string;
 }
 
 export interface AuditInput {
@@ -243,6 +246,7 @@ export function buildAuditReport(input: AuditInput, s: Strings = stringsFor("en"
     score,
     services,
     estimate,
+    painPoint: painPointFor(input.business ?? fallbackBusiness(input), s),
   };
 }
 
@@ -319,6 +323,7 @@ export function auditReportHtml(
       .svc { font-weight: 600; color: #4f46e5; }
       .stack { color: #5b6270; font-size: 14px; margin-top: 8px; }
       .cta { margin-top: 26px; background: #f4f5fb; border-radius: 14px; padding: 24px; text-align: center; }
+      .cta .pain { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-weight: 600; }
       .cta .est { font-size: 30px; font-weight: 800; color: #4f46e5; }
       .cta .btn { display: inline-block; margin-top: 14px; background: #4f46e5; color: #fff; text-decoration: none; padding: 13px 26px; border-radius: 999px; font-weight: 700; }
       footer { text-align: center; color: #5b6270; font-size: 13px; margin-top: 24px; }
@@ -340,12 +345,100 @@ export function auditReportHtml(
     </table>
 
     <div class="cta">
+      <div class="pain">${esc(report.painPoint)}</div>
       <div>${report.estimate.kind === "redesign" ? t("Recommended: a modern rebuild", "מומלץ: בנייה מחדש מודרנית") : t("Recommended: a fix & optimize package", "מומלץ: חבילת תיקון ואופטימיזציה")}</div>
       <div class="est">${esc(price(report.estimate.min, report.estimate.currency))} – ${esc(price(report.estimate.max, report.estimate.currency))}</div>
       <div class="stack">${t("Services", "שירותים")}: ${report.services.map((x) => esc(x)).join(" · ")}</div>
       <a class="btn" href="#contact">${t("Get started", "בואו נתחיל")}</a>
     </div>
     <footer>${t("Automated audit — no site changes were made.", "בדיקה אוטומטית — לא בוצעו שינויים באתר.")}${opts.brand ? ` · ${esc(opts.brand)}` : ""}</footer>
+  </body>
+</html>
+`;
+}
+
+/** A row for the side-by-side comparison: does each site pass this check? */
+function dimension(r: AuditReport, area: AuditArea): boolean {
+  return !r.findings.some((f) => f.area === area);
+}
+
+/**
+ * Side-by-side comparison of the prospect's site vs. a competitor's — a FOMO
+ * lever ("here's where you're behind"). Deterministic; localized.
+ */
+export function comparisonHtml(
+  subject: AuditReport,
+  competitor: AuditReport,
+  opts: { s?: Strings; brand?: string } = {},
+): string {
+  const s = opts.s ?? stringsFor("en");
+  const he = s.code === "he";
+  const t = (en: string, hebrew: string) => (he ? hebrew : en);
+  const dims: Array<{ area: AuditArea; label: string }> = [
+    { area: "seo", label: t("SEO basics", "יסודות SEO") },
+    { area: "mobile", label: t("Mobile-friendly", "מותאם למובייל") },
+    { area: "security", label: t("HTTPS / security", "אבטחה / HTTPS") },
+    { area: "social", label: t("Social sharing", "שיתוף חברתי") },
+    { area: "accessibility", label: t("Accessibility", "נגישות") },
+    { area: "tech", label: t("Modern platform", "פלטפורמה מודרנית") },
+  ];
+  const yn = (ok: boolean) => (ok ? `<span class="y">✓</span>` : `<span class="n">✗</span>`);
+  const behind = dims.filter(
+    (d) => !dimension(subject, d.area) && dimension(competitor, d.area),
+  ).length;
+
+  const rows = dims
+    .map(
+      (d) => `<tr>
+        <td>${esc(d.label)}</td>
+        <td class="c">${yn(dimension(subject, d.area))}</td>
+        <td class="c">${yn(dimension(competitor, d.area))}</td>
+      </tr>`,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="${s.lang}" dir="${s.dir}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${t("You vs. your competitor", "אתם מול המתחרה")} — ${esc(subject.businessName)}</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px; color: #1f2430; }
+      h1 { font-size: 24px; text-align: center; margin-bottom: 6px; }
+      .sub { text-align: center; color: #5b6270; margin-bottom: 22px; }
+      table { width: 100%; border-collapse: collapse; }
+      td, th { padding: 12px; border-bottom: 1px solid #eceef4; text-align: start; }
+      th.c, td.c { text-align: center; }
+      .scores td { font-size: 22px; font-weight: 800; }
+      .y { color: #16a34a; font-weight: 800; }
+      .n { color: #dc2626; font-weight: 800; }
+      .banner { margin-top: 22px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 18px; text-align: center; font-weight: 700; }
+      .cta { text-align:center; margin-top: 18px; }
+      .btn { display:inline-block; background:#4f46e5; color:#fff; text-decoration:none; padding:13px 26px; border-radius:999px; font-weight:700; }
+    </style>
+  </head>
+  <body>
+    <h1>${t("You vs. your competitor", "אתם מול המתחרה")}</h1>
+    <div class="sub">${esc(subject.businessName)} ${t("vs.", "מול")} ${esc(competitor.businessName)}</div>
+    <table>
+      <thead><tr><th>${t("Check", "בדיקה")}</th><th class="c">${esc(subject.businessName)}</th><th class="c">${esc(competitor.businessName)}</th></tr></thead>
+      <tbody>
+        <tr class="scores"><td>${t("Overall score", "ציון כולל")}</td><td class="c">${subject.score}</td><td class="c">${competitor.score}</td></tr>
+        ${rows}
+      </tbody>
+    </table>
+    <div class="banner">${
+      behind > 0
+        ? t(
+            `Your competitor is ahead on ${behind} of these. Let's close the gap.`,
+            `המתחרה שלכם מוביל ב-${behind} מהבדיקות. בואו נסגור את הפער.`,
+          )
+        : t("You're keeping pace — let's pull ahead.", "אתם מחזיקים קצב — בואו נוביל.")
+    }</div>
+    <div class="cta"><a class="btn" href="#contact">${t("Get started", "בואו נתחיל")}</a></div>
+    ${opts.brand ? `<div class="sub" style="margin-top:16px">${esc(opts.brand)}</div>` : ""}
   </body>
 </html>
 `;

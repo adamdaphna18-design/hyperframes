@@ -3,6 +3,7 @@ import type { Business, WebsiteStatus } from "../src/types.ts";
 import { stringsFor } from "../src/i18n/strings.ts";
 import { leadTier, scoreLead } from "../src/generate/lead.ts";
 import { generateQuote, quoteHtml, siteTypeFor } from "../src/generate/quote.ts";
+import { painPointFor } from "../src/generate/painpoints.ts";
 
 const en = stringsFor("en");
 const he = stringsFor("he");
@@ -65,6 +66,25 @@ describe("quote generation", () => {
     expect(q.includes[0]).toContain("עיצוב");
     expect(q.leadScore).toBeGreaterThan(0);
   });
+  test("carries an urgency note and an industry pain point", () => {
+    const q = generateQuote(biz({ category: "Restaurant" }), noSite, en);
+    expect(q.urgency).toMatch(/30 days/);
+    expect(q.painPoint).toMatch(/order|book|table/i);
+    const qHe = generateQuote(biz({ category: "מסעדה" }), noSite, he);
+    expect(qHe.urgency).toContain("30");
+    expect(qHe.painPoint).toContain("אונליין");
+  });
+});
+
+describe("industry pain points", () => {
+  test("matches category keywords in EN and HE, with a default fallback", () => {
+    expect(painPointFor(biz({ category: "Hair Salon" }), en)).toMatch(/booking|appointment/i);
+    expect(painPointFor(biz({ category: "מספרה" }), he)).toContain("תורים");
+    expect(painPointFor(biz({ category: "Law Firm" }), en)).toMatch(/trust|credible/i);
+    // Unknown category → default line.
+    expect(painPointFor(biz({ category: "Widget Foundry" }), en)).toMatch(/competitors/i);
+    expect(painPointFor(biz({}), he)).toContain("מתחרים");
+  });
 });
 
 describe("quote HTML", () => {
@@ -77,6 +97,8 @@ describe("quote HTML", () => {
     expect(html).toContain("הצעת מחיר לבניית אתר");
     expect(html).toContain("מסעדת הים");
     expect(html).toContain("₪");
+    expect(html).toContain('class="urgency"');
+    expect(html).toContain('class="pain"');
   });
   test("escapes untrusted business fields", () => {
     const b = biz({ name: "A&B <script>", category: "Restaurant" });

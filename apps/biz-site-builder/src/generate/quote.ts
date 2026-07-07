@@ -3,6 +3,7 @@ import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
 import { esc, taglineFor } from "./util.ts";
 import { scoreLead } from "./lead.ts";
+import { painPointFor } from "./painpoints.ts";
 import type { WebsiteStatus } from "../types.ts";
 
 /**
@@ -59,6 +60,10 @@ export interface Quote {
   timeline: string;
   paymentTerms: string;
   validity: string;
+  /** An urgency note tied to the validity window. */
+  urgency: string;
+  /** Industry-specific cost-of-inaction line. */
+  painPoint: string;
   includes: string[];
   notIncludes: string[];
   leadScore: number;
@@ -87,6 +92,10 @@ export function generateQuote(
     timeline: he ? "2–4 שבועות" : "2–4 weeks",
     paymentTerms: he ? "50% מקדמה, 50% בסיום" : "50% upfront, 50% on completion",
     validity: he ? "בתוקף ל-30 יום" : "Valid for 30 days",
+    urgency: he
+      ? "המחיר מובטח ל-30 יום; לאחר מכן ייתכן עדכון מחירים."
+      : "This price is locked for 30 days; rates may rise afterwards.",
+    painPoint: painPointFor(business, s),
     includes: he
       ? [
           "עיצוב מותאם אישית",
@@ -137,6 +146,8 @@ export function quoteHtml(business: Business, quote: Quote, s: Strings = strings
       .price-box { background: #f4f5fb; border-radius: 14px; padding: 24px; margin: 22px 0; text-align: center; }
       .price { font-size: 40px; font-weight: 800; color: #4f46e5; }
       .muted { color: #5b6270; }
+      .pain { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 14px 18px; margin: 18px 0; font-weight: 600; }
+      .urgency { color: #b45309; font-size: 13px; margin-top: 6px; font-weight: 600; }
       .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
       .card { border: 1px solid #e6e8f0; border-radius: 12px; padding: 18px; }
       .card.inc { background: #eefbf1; border-color: #cdefd6; }
@@ -155,10 +166,12 @@ export function quoteHtml(business: Business, quote: Quote, s: Strings = strings
       <h1>${esc(heading)}</h1>
       <h2>${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}</h2>
     </div>
+    <p class="pain">${esc(quote.painPoint)}</p>
     <div class="price-box">
       <div class="muted">${esc(quote.siteTypeName)}</div>
       <div class="price">${esc(formatPrice(quote.priceMin, quote.currency))} – ${esc(formatPrice(quote.priceMax, quote.currency))}</div>
       <div class="muted">${esc(quote.validity)}</div>
+      <div class="urgency">${esc(quote.urgency)}</div>
     </div>
     <div class="cols">
       <div class="card inc"><h3>${he ? "✓ מה כלול" : "✓ Included"}</h3><ul>${li(quote.includes)}</ul></div>

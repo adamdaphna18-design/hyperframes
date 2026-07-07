@@ -106,15 +106,22 @@ a lead, so it gets a lead-score bump. The platform shows on the directory card a
 
 ## Website audit (customer-facing lead magnet)
 
-`biz-site-builder audit --url https://a-business.com [--out report.html] [--locale he] [--brand X]`
+`biz-site-builder audit --url https://a-business.com [--competitor https://rival.com] [--out report.html] [--locale he] [--brand X]`
 scans a business that **already has a site** and writes a branded, localized (RTL for Hebrew) audit
 report. It composes the existing deterministic analyzers — the on-page **SEO audit**, the
 **tech-stack detector**, and a few heuristics — into findings where **every issue maps to a service
 you sell** (SEO, social, accessibility, mobile, security, redesign, maintenance), with a 0–100 health
 score, an **estimate** (a redesign when the stack is weak/outdated or there are ≥2 serious issues,
-else a fix-and-optimize package), and a call to action. The point is to turn a scanned business into a
-customer and cut acquisition cost. No browser, no LLM — deterministic, and the generator
+else a fix-and-optimize package), an **industry pain point** (a category-specific cost-of-inaction
+line), and a call to action. The point is to turn a scanned business into a customer and cut
+acquisition cost. No browser, no LLM — deterministic, and the generator
 (`src/generate/audit.ts`) is pure/testable (the CLI just fetches the page).
+
+With `--competitor <url>`, the audit also scans a rival and writes a side-by-side **"you vs. them"
+comparison** (`<out>.compare.html`) over six checks (SEO, mobile, security, social, accessibility,
+platform) plus overall score — a loss-prevention close that flags exactly where the prospect is
+behind. Deciding _when_ to run this (which competitor, which lead) is orchestration for the separate
+operational layer; the generator just takes the two URLs.
 
 ## Lead scoring & quotes
 
@@ -123,8 +130,10 @@ owned site (the opportunity), rating, review volume, and reachability — surfac
 the directory. With `--quotes`, each site-less business also gets a client-ready **price quote**
 (`src/generate/quote.ts`): the recommended site type is picked from the category (EN + Hebrew
 keywords), priced from a fixed 2026 rate card scaled by review volume, and rendered as a
-self-contained localized (RTL for Hebrew) `sites/<slug>.quote.html`. This is the "lead → quote"
-step; delivery (email/WhatsApp) and CRM are intentionally out of scope for this generator.
+self-contained localized (RTL for Hebrew) `sites/<slug>.quote.html`. Each quote carries an
+**industry pain point** (`src/generate/painpoints.ts` — a category → cost-of-inaction lookup, EN +
+Hebrew) and an **urgency** note (the price is locked for the validity window). This is the "lead →
+quote" step; delivery (email/WhatsApp) and CRM are intentionally out of scope for this generator.
 
 ## Local SEO, social & maps
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { stringsFor } from "../src/i18n/strings.ts";
-import { auditReportHtml, buildAuditReport } from "../src/generate/audit.ts";
+import { auditReportHtml, buildAuditReport, comparisonHtml } from "../src/generate/audit.ts";
 
 const en = stringsFor("en");
 const he = stringsFor("he");
@@ -70,5 +70,36 @@ describe("auditReportHtml", () => {
   test("Hebrew report is RTL", () => {
     const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, he);
     expect(auditReportHtml(r, { s: he })).toContain('dir="rtl"');
+  });
+  test("carries an industry pain point and renders it", () => {
+    const business = {
+      id: "1",
+      name: "Rosa's Trattoria",
+      category: "restaurant",
+      images: [],
+      reviews: [],
+    };
+    const r = buildAuditReport({ html: badHtml, url: "http://shop.example", business }, en);
+    expect(r.painPoint).toMatch(/order|book|table/i);
+    expect(auditReportHtml(r, { s: en })).toContain(r.painPoint.slice(0, 12));
+  });
+});
+
+describe("comparisonHtml", () => {
+  test("renders a you-vs-competitor table and flags where the subject is behind", () => {
+    const subject = buildAuditReport({ html: badHtml, url: "http://shop.example" }, en);
+    const competitor = buildAuditReport({ html: goodHtml, url: "https://cafe.example" }, en);
+    const html = comparisonHtml(subject, competitor, { s: en, brand: "MyAgency" });
+    expect(html.startsWith("<!doctype html>")).toBe(true);
+    expect(html).toContain(String(subject.score));
+    expect(html).toContain(String(competitor.score));
+    // Bad subject vs. healthy competitor → competitor ahead on ≥1 dimension.
+    expect(html).toMatch(/ahead on \d+/);
+    expect(html).toContain("MyAgency");
+  });
+  test("Hebrew comparison is RTL", () => {
+    const subject = buildAuditReport({ html: badHtml, url: "http://shop.example" }, he);
+    const competitor = buildAuditReport({ html: goodHtml, url: "https://cafe.example" }, he);
+    expect(comparisonHtml(subject, competitor, { s: he })).toContain('dir="rtl"');
   });
 });
