@@ -123,4 +123,49 @@ describe("build (end to end)", () => {
     expect(result.needsWebsite).toBe(5);
     expect(result.sitesBuilt).toBe(5);
   });
+
+  test("--include-weak builds a redesign for an outdated existing site", async () => {
+    const outDir = await out();
+    // One business with a live, but Wix (weak) + jQuery-1.x (outdated) site.
+    const source = {
+      name: "mem",
+      async load() {
+        return [
+          {
+            id: "wixco",
+            name: "Wix Co",
+            website: "https://wixco.example",
+            images: [],
+            reviews: [],
+          },
+        ];
+      },
+    };
+    const fetchImpl = (async () =>
+      new Response(
+        '<script src="https://static.wixstatic.com/x.js"></script><script src="/jquery-1.12.4.min.js">',
+        {
+          status: 200,
+        },
+      )) as unknown as typeof fetch;
+    const result = await build({
+      sources: [source],
+      outDir,
+      target: "static",
+      verifyLive: true,
+      includeWeak: true,
+      quotes: true,
+      fetchImpl,
+    });
+    // It "has a website", so it isn't counted as needing one...
+    expect(result.needsWebsite).toBe(0);
+    // ...but --include-weak still builds a redesign + quote for it.
+    expect(result.staticBuilt).toBe(1);
+    const entry = result.entries[0]!;
+    expect(entry.status.platform).toBe("Wix");
+    expect(entry.status.weakBuilder).toBe(true);
+    expect(entry.status.outdated).toBe(true);
+    expect(entry.sitePath).toBeTruthy();
+    expect(entry.quotePath).toBeTruthy();
+  });
 });

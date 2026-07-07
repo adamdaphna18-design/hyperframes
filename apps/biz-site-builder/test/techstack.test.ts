@@ -34,6 +34,17 @@ describe("detectTechStack", () => {
     const t = detectTechStack("<html><body><h1>Joe</h1></body></html>");
     expect(t.platform).toBeUndefined();
     expect(t.weakBuilder).toBe(false);
+    expect(t.outdated).toBe(false);
+  });
+
+  test("flags outdated/legacy tech (jQuery 1.x, Flash, WebForms)", () => {
+    expect(detectTechStack('<script src="/js/jquery-1.11.3.min.js">').outdated).toBe(true);
+    const flash = detectTechStack('<script src="swfobject.js"></script>');
+    expect(flash.outdated).toBe(true);
+    expect(flash.outdatedSignals).toContain("Adobe Flash");
+    expect(
+      detectTechStack('<input type="hidden" name="__VIEWSTATE" value="x">').outdatedSignals,
+    ).toContain("ASP.NET WebForms");
   });
 });
 

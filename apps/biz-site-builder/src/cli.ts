@@ -25,6 +25,7 @@ interface ParsedArgs {
   gaId?: string;
   plausible?: string;
   quotes: boolean;
+  includeWeak: boolean;
   help: boolean;
 }
 
@@ -43,6 +44,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     livePlugins: false,
     geocode: false,
     quotes: false,
+    includeWeak: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -115,6 +117,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--quotes":
         args.quotes = true;
         break;
+      case "--include-weak":
+        args.includeWeak = true;
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -162,6 +167,7 @@ Options:
       --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event
       --plausible <domain>  Inject the Plausible analytics snippet
       --quotes          Generate a price quote (lead → quote) per site-less business
+      --include-weak    Also build redesigns for weak/outdated existing sites (needs --verify-live)
   -h, --help            Show this help
 
 Output:
@@ -226,6 +232,7 @@ async function main(): Promise<void> {
       analytics:
         args.gaId || args.plausible ? { ga4: args.gaId, plausible: args.plausible } : undefined,
       quotes: args.quotes,
+      includeWeak: args.includeWeak,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)

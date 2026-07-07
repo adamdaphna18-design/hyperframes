@@ -33,6 +33,7 @@ export function generateIndexJson(entries: ListingEntry[]): string {
     existingPlatform: e.status.platform ?? null,
     technologies: e.status.technologies ?? null,
     weakBuilder: e.status.weakBuilder ?? false,
+    outdated: e.status.outdated ?? false,
     needsWebsite: !e.status.hasWebsite,
     reason: e.status.reason,
     imageCount: e.business.images.length,
@@ -78,7 +79,8 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
           <span class="tag">${esc(s.reviewsCount(b.reviews.length))}</span>
           <span class="tag">${esc(s.photosCount(b.images.length))}</span>
           <span class="tag ${e.status.hasWebsite ? "ok" : "warn"}">${esc(e.status.hasWebsite ? s.hasWebsiteTag : s.needsWebsiteTag)}</span>
-          ${e.status.platform ? `<span class="tag plat${e.status.weakBuilder ? " weak" : ""}">${esc(e.status.platform)}</span>` : ""}
+          ${e.status.platform ? `<span class="tag plat${e.status.weakBuilder || e.status.outdated ? " weak" : ""}">${esc(e.status.platform)}</span>` : ""}
+          ${e.status.outdated ? `<span class="tag weak">${s.code === "he" ? "מיושן" : "outdated"}</span>` : ""}
           ${e.leadScore !== undefined ? `<span class="tag lead">${s.code === "he" ? "ליד" : "lead"} ${e.leadScore}</span>` : ""}
           ${e.locale === "he" ? `<span class="tag lang">עברית</span>` : ""}
         </div>
@@ -123,7 +125,7 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
       .tag.lang { background: #1e2a44; color: #a9c5ff; }
       .tag.lead { background: #2a2340; color: #c9b8f0; }
       .tag.plat { background: #1f3330; color: #a7e0d0; }
-      .tag.plat.weak { background: #3a2a12; color: #f4c079; }
+      .tag.weak { background: #3a2a12; color: #f4c079; }
       .links { display: flex; gap: 8px; flex-wrap: wrap; }
       .pill { font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #3552cc; color: #fff; }
       .pill.wp { background: #1d6a8f; color: #fff; }

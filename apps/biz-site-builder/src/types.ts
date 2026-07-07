@@ -73,4 +73,6 @@ export interface WebsiteStatus {
   technologies?: string[];
   /** The existing site runs on a locked-in DIY builder (weak presence). */
   weakBuilder?: boolean;
+  /** The existing site runs visibly outdated tech → a redesign lead. */
+  outdated?: boolean;
 }

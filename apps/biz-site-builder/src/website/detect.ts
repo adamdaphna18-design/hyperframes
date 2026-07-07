@@ -103,6 +103,7 @@ export async function verifyLive(
       if (tech?.platform) enriched.platform = tech.platform;
       if (tech && tech.technologies.length) enriched.technologies = tech.technologies;
       if (tech?.weakBuilder) enriched.weakBuilder = true;
+      if (tech?.outdated) enriched.outdated = true;
       return enriched;
     }
     return {

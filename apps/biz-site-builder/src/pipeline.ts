@@ -58,6 +58,8 @@ export interface BuildOptions {
   analytics?: AnalyticsOptions;
   /** Also generate a price quote per site-less business (lead → quote). */
   quotes?: boolean;
+  /** Also build for existing sites on a weak/outdated stack (redesign leads; needs --verify-live). */
+  includeWeak?: boolean;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
@@ -140,9 +142,17 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
   const wantStatic = target === "static" || target === "both";
   const wantWordPress = target === "wordpress" || target === "both";
   const needing = detected.filter((d) => !d.status.hasWebsite);
-  const selected = opts.limit ? needing.slice(0, opts.limit) : needing;
-  if (opts.limit && needing.length > selected.length) {
-    log(`Limit ${opts.limit}: building ${selected.length}/${needing.length} site-less businesses.`);
+  // With --include-weak, existing sites on a weak DIY builder or outdated tech are
+  // also build candidates (redesign proposals), not just site-less businesses.
+  const candidates = detected.filter(
+    (d) =>
+      !d.status.hasWebsite || (opts.includeWeak && (d.status.weakBuilder || d.status.outdated)),
+  );
+  const selected = opts.limit ? candidates.slice(0, opts.limit) : candidates;
+  if (opts.limit && candidates.length > selected.length) {
+    log(
+      `Limit ${opts.limit}: building ${selected.length}/${candidates.length} candidate businesses.`,
+    );
   }
 
   // ── Phase 4: generate per selected business (parallel, budgeted, resumable) ──

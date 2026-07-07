@@ -14,6 +14,10 @@ export interface TechStack {
   technologies: string[];
   /** True when the platform is a locked-in DIY site builder. */
   weakBuilder: boolean;
+  /** True when the site runs visibly outdated tech → a redesign lead. */
+  outdated: boolean;
+  /** The specific outdated signals matched (jQuery 1.x, Flash, …). */
+  outdatedSignals: string[];
 }
 
 interface Signature {
@@ -21,9 +25,30 @@ interface Signature {
   /** True if this is a primary platform (vs. an auxiliary library). */
   platform?: boolean;
   weakBuilder?: boolean;
+  /** Marks a legacy/outdated technology (a redesign opportunity). */
+  outdated?: boolean;
   html?: RegExp;
   header?: { name: string; value?: RegExp };
 }
+
+// Legacy / end-of-life signatures: a live site matching these is a redesign lead.
+const OUTDATED_SIGNATURES: Signature[] = [
+  { name: "jQuery 1.x", outdated: true, html: /jquery[-/.]1\.\d|jquery\.min\.js\?ver=1\./i },
+  { name: "jQuery 2.x", outdated: true, html: /jquery[-/.]2\.\d/i },
+  {
+    name: "Bootstrap 3",
+    outdated: true,
+    html: /bootstrap[-/.]3\.\d|bootstrap\.min\.(?:css|js)\?ver=3\./i,
+  },
+  {
+    name: "Adobe Flash",
+    outdated: true,
+    html: /swfobject|\.swf["'?]|application\/x-shockwave-flash/i,
+  },
+  { name: "AngularJS (v1)", outdated: true, html: /angular(?:\.min)?\.js|ng-app=|ng-controller=/i },
+  { name: "ASP.NET WebForms", outdated: true, html: /__VIEWSTATE|__EVENTVALIDATION/i },
+  { name: "Frames / table layout", outdated: true, html: /<frameset|<frame\s|<font\b/i },
+];
 
 // Order matters: earlier platform matches win as the "primary" platform.
 const SIGNATURES: Signature[] = [
@@ -112,23 +137,30 @@ export function detectTechStack(
   headers?: Headers | Record<string, string>,
 ): TechStack {
   const technologies: string[] = [];
+  const outdatedSignals: string[] = [];
   let platform: string | undefined;
   let weakBuilder = false;
 
-  for (const sig of SIGNATURES) {
-    let matched = false;
-    if (sig.html && sig.html.test(html)) matched = true;
-    if (!matched && sig.header) {
+  const test = (sig: Signature): boolean => {
+    if (sig.html && sig.html.test(html)) return true;
+    if (sig.header) {
       const value = headerGet(headers, sig.header.name);
-      if (value !== undefined && (!sig.header.value || sig.header.value.test(value)))
-        matched = true;
+      if (value !== undefined && (!sig.header.value || sig.header.value.test(value))) return true;
     }
-    if (!matched) continue;
+    return false;
+  };
+
+  for (const sig of SIGNATURES) {
+    if (!test(sig)) continue;
     technologies.push(sig.name);
     if (sig.platform && !platform) {
       platform = sig.name;
       weakBuilder = Boolean(sig.weakBuilder);
     }
+  }
+
+  for (const sig of OUTDATED_SIGNATURES) {
+    if (test(sig)) outdatedSignals.push(sig.name);
   }
 
   // Server banner as a fallback technology.
@@ -138,5 +170,11 @@ export function detectTechStack(
     if (/nginx|apache|litespeed|iis|caddy/i.test(banner)) technologies.push(banner);
   }
 
-  return { platform, technologies, weakBuilder };
+  return {
+    platform,
+    technologies,
+    weakBuilder,
+    outdated: outdatedSignals.length > 0,
+    outdatedSignals,
+  };
 }
