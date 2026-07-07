@@ -33,6 +33,7 @@
   "scripts": {
     "build": "tsc",
     "demo": "tsx src/demo/run-demo.ts",
+    "demo:apis": "tsx src/examples/public-apis/run.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

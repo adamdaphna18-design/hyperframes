@@ -1,3 +1,4 @@
+import { makePatch } from "./patch-factory.js";
 import type {
   FailureCluster,
   Harness,
@@ -26,7 +27,8 @@ export class HeuristicProposer implements Proposer {
     switch (cluster.pattern) {
       case "runaway-exploration":
         return [
-          patch(
+          makePatch(
+            "patch",
             "runaway-exploration",
             "Cap tool-call loops hard so exploration can't run forever.",
             [
@@ -34,7 +36,8 @@ export class HeuristicProposer implements Proposer {
               { op: "addRule", text: "Cap tool-call loops; stop exploring once you can act." },
             ],
           ),
-          patch(
+          makePatch(
+            "patch",
             "runaway-exploration",
             "Bound exploration with a reasonable ceiling and deliver the artifact.",
             [
@@ -48,7 +51,8 @@ export class HeuristicProposer implements Proposer {
         ];
       case "repeated-failed-command":
         return [
-          patch(
+          makePatch(
+            "patch",
             "repeated-failed-command",
             "Never re-run a command that already failed unchanged; try another approach.",
             [
@@ -62,7 +66,8 @@ export class HeuristicProposer implements Proposer {
         ];
       case "lost-env-var":
         return [
-          patch(
+          makePatch(
+            "patch",
             "lost-env-var",
             "Persist environment variables across sessions so state survives.",
             [
@@ -75,12 +80,6 @@ export class HeuristicProposer implements Proposer {
         return [];
     }
   }
-}
-
-let counter = 0;
-function patch(target: string, rationale: string, ops: PatchOp[]): HarnessPatch {
-  counter += 1;
-  return { id: `patch-${counter}`, targetPattern: target, rationale, ops };
 }
 
 /**
@@ -103,14 +102,8 @@ export class ModelProposer implements Proposer {
     });
     const ops = parseOps(raw);
     if (ops.length === 0) return [];
-    return [
-      {
-        id: `model-patch-${(counter += 1)}`,
-        targetPattern: cluster.pattern,
-        rationale: `Edit proposed by ${this.model.name} for "${cluster.pattern}".`,
-        ops,
-      },
-    ];
+    const rationale = `Edit proposed by ${this.model.name} for "${cluster.pattern}".`;
+    return [makePatch("model-patch", cluster.pattern, rationale, ops)];
   }
 }
 

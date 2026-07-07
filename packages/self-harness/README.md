@@ -97,6 +97,55 @@ const result = await selfHarness({
 `AnthropicModel` loads `@anthropic-ai/sdk` lazily, so the core framework, the
 tests, and the offline demo all run without it installed.
 
+## Real-world example: public-apis
+
+`src/examples/public-apis/` drives the loop against a curated slice of real
+entries from [public-apis/public-apis](https://github.com/public-apis/public-apis)
+(all no-auth, HTTPS). The `HttpAgent` is real — it calls endpoints with `fetch`,
+governed by the harness: a timeout rule, a follow-redirects rule, a
+retry-on-429 rule, and the `maxToolCalls` attempt budget. Failures cluster by
+their real HTTP cause and the gate tunes the harness accordingly.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:apis   # offline (recorded client)
+```
+
+```
+── round 1 — pass rate 33% ──   cluster: "request-timeout" × 2
+  gate http-patch-1: rejected: no net improvement (nothing newly passing)
+  ✓ committed http-patch-2: + rule: timeout-ms=2000
+── round 2 — pass rate 56% ──   cluster: "http-429-no-retry" × 2
+  gate http-patch-3: rejected: regressed 1 passing task(s): rest-countries
+  ✓ committed http-patch-4: + rule: retry-on-429
+── round 3 — pass rate 78% ──   ✓ committed http-patch-5: + rule: follow-redirects
+pass rate: 33% → 100%   fingerprint: [timeout-ms=2000, retry-on-429, follow-redirects]
+```
+
+Both gate rejections are real: a candidate that raises the timeout too little
+(no improvement), and a retry fix that also clamps `maxToolCalls` and would
+starve the one paged endpoint (regression). Because outbound network in most
+sandboxes is locked down, the demo defaults to a **recorded** HTTP client that
+replays each endpoint's behavior deterministically; swap in `FetchHttpClient`
+(or `runPublicApiDemo({ live: true })`) to run the identical loop live:
+
+```ts
+import {
+  HttpAgent,
+  FetchHttpClient,
+  HttpHeuristicProposer,
+  buildPublicApiSuite,
+  selfHarness,
+  defaultHarness,
+} from "@hyperframes/self-harness";
+
+await selfHarness({
+  agent: new HttpAgent(new FetchHttpClient()), // real fetch against live APIs
+  proposer: new HttpHeuristicProposer(),
+  tasks: buildPublicApiSuite(),
+  initialHarness: defaultHarness(),
+});
+```
+
 ## Design
 
 - **Harness as data.** `Harness` = system prompt + rules + typed limits + tools.
@@ -110,15 +159,16 @@ tests, and the offline demo all run without it installed.
 
 ## Module map
 
-| File          | Responsibility                                                               |
-| ------------- | ---------------------------------------------------------------------------- |
-| `types.ts`    | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
-| `harness.ts`  | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
-| `runner.ts`   | Run an agent over a task suite                                               |
-| `cluster.ts`  | Group failures into recurring patterns                                       |
-| `proposer.ts` | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
-| `gate.ts`     | The regression acceptance criterion                                          |
-| `loop.ts`     | The orchestrator (`selfHarness`)                                             |
-| `agents/`     | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
-| `models/`     | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
-| `demo/`       | The runnable pathology suite + `runDemo`                                     |
+| File                    | Responsibility                                                               |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `types.ts`              | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
+| `harness.ts`            | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
+| `runner.ts`             | Run an agent over a task suite                                               |
+| `cluster.ts`            | Group failures into recurring patterns                                       |
+| `proposer.ts`           | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
+| `gate.ts`               | The regression acceptance criterion                                          |
+| `loop.ts`               | The orchestrator (`selfHarness`)                                             |
+| `agents/`               | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
+| `models/`               | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
+| `demo/`                 | The runnable pathology suite + `runDemo`                                     |
+| `examples/public-apis/` | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
