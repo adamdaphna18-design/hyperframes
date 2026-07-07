@@ -6,7 +6,10 @@ import { csvToRecords } from "./sources/csv.ts";
 import { normalizeRecord } from "./sources/normalize.ts";
 import { build, type OutputTarget } from "./pipeline.ts";
 import { buildAuditReport, auditReportHtml, comparisonHtml } from "./generate/audit.ts";
+import { recommendAiServices } from "./generate/opportunities.ts";
+import { estimateRoi } from "./generate/roi.ts";
 import { outputSlug } from "./generate/util.ts";
+import type { Business } from "./types.ts";
 import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
 
 interface ParsedArgs {
@@ -35,6 +38,9 @@ interface ParsedArgs {
   url?: string;
   competitor?: string;
   csv?: string;
+  category?: string;
+  leadsPerMonth?: number;
+  dealSize?: number;
   help: boolean;
 }
 
@@ -138,6 +144,15 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--csv":
         if (argv[++i]) args.csv = argv[i];
         break;
+      case "--category":
+        if (argv[++i]) args.category = argv[i];
+        break;
+      case "--leads-per-month":
+        args.leadsPerMonth = Number(argv[++i]) || undefined;
+        break;
+      case "--deal-size":
+        args.dealSize = Number(argv[++i]) || undefined;
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -151,11 +166,11 @@ const HELP = `biz-site-builder — scrape/list businesses, build WordPress sites
 
 Usage:
   biz-site-builder build --source <type:spec> [--source ...] [options]
-  biz-site-builder audit --url <url> [--competitor <url>] [--out report.html] [--locale he] [--brand X]
+  biz-site-builder audit --url <url> [--competitor <url>] [--category X] [--leads-per-month N]
        Scan a live business site and write a branded audit report (issues → services
-       we sell → estimate → recurring AI-workforce upsell → CTA) — a lead magnet for
-       businesses that already have a site. With --competitor, also writes a side-by-side
-       "you vs. them" comparison (FOMO close).
+       we sell → industry must-haves → estimate → AI-workforce upsell → optional ROI → CTA).
+       --category tailors the pitch to the trade; --leads-per-month adds a ROI panel
+       (operator-supplied — no invented traffic). --competitor adds a "you vs. them" table.
   biz-site-builder audit --csv <file> [--out dir] [--locale he] [--brand X]
        Batch-audit every business in a CSV (website column required; optional
        "competitor" column). Writes one report per row + a roll-up index
@@ -218,6 +233,33 @@ function auditLocale(args: ParsedArgs): LocaleCode {
   return "en";
 }
 
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Compute a ROI estimate only when the operator supplied a lead volume — no
+ * `--leads-per-month`, no number. Prices it against the recommended AI bundle.
+ */
+function roiFor(
+  report: ReturnType<typeof buildAuditReport>,
+  args: ParsedArgs,
+  s: ReturnType<typeof stringsFor>,
+) {
+  if (!args.leadsPerMonth) return undefined;
+  const opp = recommendAiServices(report, s);
+  const monthlyPackagePrice = opp.bundleMonthly || 299;
+  return estimateRoi(
+    report.industry,
+    { leadsPerMonth: args.leadsPerMonth, monthlyPackagePrice, dealSize: args.dealSize },
+    s,
+  );
+}
+
 /** `audit --url <url>`: fetch a live site and write a branded audit report. */
 async function runAudit(args: ParsedArgs): Promise<void> {
   if (!args.url) {
@@ -235,9 +277,13 @@ async function runAudit(args: ParsedArgs): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const report = buildAuditReport({ html: page.html, url: page.finalUrl }, s);
+  const business: Business | undefined = args.category
+    ? { id: args.url, name: hostname(args.url), category: args.category, images: [], reviews: [] }
+    : undefined;
+  const report = buildAuditReport({ html: page.html, url: page.finalUrl, business }, s);
+  const roi = roiFor(report, args, s);
   const out = args.out === ".out" ? "audit.html" : args.out;
-  await writeFile(out, auditReportHtml(report, { s, brand: args.brand }), "utf8");
+  await writeFile(out, auditReportHtml(report, { s, brand: args.brand, roi }), "utf8");
   process.stdout.write(
     `✓ ${out} — score ${report.score}/100, ${report.findings.length} issue(s)${report.platform ? `, ${report.platform}` : ""}. Est. ${report.estimate.currency}${report.estimate.min}–${report.estimate.currency}${report.estimate.max}.\n`,
   );

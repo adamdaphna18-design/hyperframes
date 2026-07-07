@@ -44,6 +44,26 @@ const PAIN_POINTS: Array<{ match: RegExp; en: string; he: string }> = [
     en: "Drivers searching for a nearby, trusted garage never find you — the job goes elsewhere.",
     he: "נהגים שמחפשים מוסך אמין באזור לא מוצאים אתכם — העבודה הולכת למישהו אחר.",
   },
+  {
+    match: /electric|electrician|חשמלאי|חשמל/i,
+    en: "Callers can't reach you mid-job — the urgent call goes to whoever answers first.",
+    he: "לקוחות לא משיגים אתכם באמצע עבודה — הקריאה הדחופה עוברת למי שעונה ראשון.",
+  },
+  {
+    match: /plumb|plumber|שרברב|אינסטלט|אינסטלציה/i,
+    en: "When a pipe bursts, people call the plumber they can find online — not the one they can't.",
+    he: "כשצינור מתפוצץ, מתקשרים לשרברב שמוצאים ברשת — לא לזה שלא מוצאים.",
+  },
+  {
+    match: /handyman|contractor|technician|renovation|הנדימן|קבלן|טכנאי|שיפוצ/i,
+    en: "Without reviews and a price list online, prospects can't tell you apart — so they pick the cheapest.",
+    he: "בלי ביקורות ומחירון ברשת, לקוחות לא יודעים להבדיל ביניכם — אז בוחרים בזול ביותר.",
+  },
+  {
+    match: /hotel|motel|hostel|bnb|guesthouse|צימר|מלון|אירוח|אכסני/i,
+    en: "No online booking means travelers reserve with the property that lets them book on the spot.",
+    he: "בלי הזמנה אונליין, מטיילים מזמינים אצל מי שמאפשר להזמין במקום.",
+  },
 ];
 
 const DEFAULT = {

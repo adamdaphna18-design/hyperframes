@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { stringsFor } from "../src/i18n/strings.ts";
 import { auditReportHtml, buildAuditReport, comparisonHtml } from "../src/generate/audit.ts";
 import { recommendAiServices } from "../src/generate/opportunities.ts";
+import { estimateRoi } from "../src/generate/roi.ts";
 
 const en = stringsFor("en");
 const he = stringsFor("he");
@@ -71,6 +72,35 @@ describe("auditReportHtml", () => {
   test("Hebrew report is RTL", () => {
     const r = buildAuditReport({ html: badHtml, url: "http://shop.example" }, he);
     expect(auditReportHtml(r, { s: he })).toContain('dir="rtl"');
+  });
+  test("renders the industry must-haves section from the profile", () => {
+    const business = {
+      id: "1",
+      name: "Volt Electric",
+      category: "electrician",
+      images: [],
+      reviews: [],
+    };
+    const r = buildAuditReport({ html: badHtml, url: "http://volt.example", business }, en);
+    expect(r.industry.key).toBe("electrician");
+    const html = auditReportHtml(r, { s: en });
+    expect(html).toContain("Electrician site needs");
+    expect(html).toContain(r.industry.requiredFeatures[0]!);
+    expect(html).toContain(r.industry.closingPitch.slice(0, 12));
+  });
+  test("renders the ROI panel only when an estimate is supplied", () => {
+    const business = {
+      id: "1",
+      name: "Volt Electric",
+      category: "electrician",
+      images: [],
+      reviews: [],
+    };
+    const r = buildAuditReport({ html: badHtml, url: "http://volt.example", business }, en);
+    const roi = estimateRoi(r.industry, { leadsPerMonth: 10, monthlyPackagePrice: 299 }, en);
+    expect(auditReportHtml(r, { s: en, roi })).toContain("Potential return");
+    // No roi → no panel.
+    expect(auditReportHtml(r, { s: en })).not.toContain("Potential return");
   });
   test("carries an industry pain point and renders it", () => {
     const business = {

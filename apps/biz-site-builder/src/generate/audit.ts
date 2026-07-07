@@ -5,8 +5,9 @@ import { esc } from "./util.ts";
 import { auditSeo } from "../verify/seo.ts";
 import { detectTechStack } from "../website/techstack.ts";
 import { generateQuote } from "./quote.ts";
-import { painPointFor } from "./painpoints.ts";
 import { recommendAiServices } from "./opportunities.ts";
+import { getIndustryProfile, type IndustryProfile } from "./industry.ts";
+import type { RoiEstimate } from "./roi.ts";
 
 /**
  * Customer-facing **website audit** — the lead-magnet inverse of the site
@@ -52,6 +53,8 @@ export interface AuditReport {
   estimate: { kind: "redesign" | "optimize"; min: number; max: number; currency: string };
   /** Industry-specific cost-of-inaction line. */
   painPoint: string;
+  /** Category business profile (must-have features, closing pitch, benchmarks). */
+  industry: IndustryProfile;
 }
 
 export interface AuditInput {
@@ -236,6 +239,8 @@ export function buildAuditReport(input: AuditInput, s: Strings = stringsFor("en"
     estimate = { kind: "optimize", min: 1500, max: 4500, currency: "₪" };
   }
 
+  const industry = getIndustryProfile(input.business ?? fallbackBusiness(input), s);
+
   return {
     url,
     businessName: input.business?.name ?? hostOf(url),
@@ -247,7 +252,8 @@ export function buildAuditReport(input: AuditInput, s: Strings = stringsFor("en"
     score,
     services,
     estimate,
-    painPoint: painPointFor(input.business ?? fallbackBusiness(input), s),
+    painPoint: industry.painPoint,
+    industry,
   };
 }
 
@@ -276,7 +282,7 @@ function price(n: number, currency: string): string {
 /** Render the audit as a branded, localized (RTL for Hebrew) HTML report. */
 export function auditReportHtml(
   report: AuditReport,
-  opts: { s?: Strings; brand?: string } = {},
+  opts: { s?: Strings; brand?: string; roi?: RoiEstimate } = {},
 ): string {
   const s = opts.s ?? stringsFor("en");
   const he = s.code === "he";
@@ -338,6 +344,20 @@ export function auditReportHtml(
       .ai .price { white-space: nowrap; font-weight: 800; color: #16794a; }
       .ai .bundle { margin-top: 14px; text-align: center; font-weight: 800; color: #16794a; }
       .ai .note { color: #5b6270; font-size: 12px; margin-top: 8px; text-align: center; }
+      .needs { margin-top: 22px; border: 1px solid #e6e8f0; border-radius: 14px; padding: 20px; }
+      .needs h3 { font-size: 16px; margin-bottom: 12px; }
+      .needs .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .needs .chip { background: #eef1fb; color: #3730a3; border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 600; }
+      .needs .pitch { margin-top: 14px; color: #1f2430; font-weight: 600; }
+      .roi { margin-top: 22px; border: 1px solid #c7d2fe; border-radius: 14px; overflow: hidden; }
+      .roi .head { background: #3730a3; color: #fff; padding: 16px 20px; font-weight: 700; }
+      .roi .body { padding: 20px; }
+      .roi .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; text-align: center; }
+      .roi .cell { background: #f4f5fb; border-radius: 12px; padding: 16px 10px; }
+      .roi .cell b { display: block; font-size: 24px; color: #3730a3; }
+      .roi .cell span { color: #5b6270; font-size: 13px; }
+      .roi .note { color: #5b6270; font-size: 12px; margin-top: 12px; text-align: center; }
+      @media (max-width: 560px) { .roi .grid { grid-template-columns: 1fr; } }
       footer { text-align: center; color: #5b6270; font-size: 13px; margin-top: 24px; }
     </style>
   </head>
@@ -363,7 +383,9 @@ export function auditReportHtml(
       <div class="stack">${t("Services", "שירותים")}: ${report.services.map((x) => esc(x)).join(" · ")}</div>
       <a class="btn" href="#contact">${t("Get started", "בואו נתחיל")}</a>
     </div>
+    ${industryNeedsSection(report, s)}
     ${aiWorkforceSection(report, s)}
+    ${opts.roi ? roiSection(opts.roi, s) : ""}
     <footer>${t("Automated audit — no site changes were made.", "בדיקה אוטומטית — לא בוצעו שינויים באתר.")}${opts.brand ? ` · ${esc(opts.brand)}` : ""}</footer>
   </body>
 </html>
@@ -402,6 +424,45 @@ function aiWorkforceSection(report: AuditReport, s: Strings): string {
           "Recurring managed services — each addresses an issue found above.",
           "שירותים מנוהלים חודשיים — כל אחד נותן מענה לבעיה שנמצאה למעלה.",
         )}</div>
+      </div>
+    </div>`;
+}
+
+/**
+ * "What a {category} site needs" — the must-have features for the business's
+ * industry plus a category-specific closing line. Deterministic advice (not a
+ * measurement), so it always renders.
+ */
+function industryNeedsSection(report: AuditReport, s: Strings): string {
+  const he = s.code === "he";
+  const t = (en: string, hebrew: string) => (he ? hebrew : en);
+  const chips = report.industry.requiredFeatures
+    .map((f) => `<span class="chip">${esc(f)}</span>`)
+    .join("");
+  return `<div class="needs">
+      <h3>${t(`What a ${report.industry.displayName} site needs`, `מה אתר ${report.industry.displayName} צריך`)}</h3>
+      <div class="chips">${chips}</div>
+      <div class="pitch">${esc(report.industry.closingPitch)}</div>
+    </div>`;
+}
+
+/**
+ * The ROI panel — rendered only when the operator supplied a lead volume. Every
+ * number is a function of the stated assumptions, echoed in the note beneath.
+ */
+function roiSection(roi: RoiEstimate, s: Strings): string {
+  const he = s.code === "he";
+  const t = (en: string, hebrew: string) => (he ? hebrew : en);
+  const money = (n: number) => `${roi.currency}${n.toLocaleString("en-US")}`;
+  return `<div class="roi">
+      <div class="head">${t("Potential return", "החזר פוטנציאלי")}</div>
+      <div class="body">
+        <div class="grid">
+          <div class="cell"><b>${money(roi.revenueRecovered)}</b><span>${t("recovered / month", "שוחזר / חודש")}</span></div>
+          <div class="cell"><b>${roi.roiPercent}%</b><span>${t("est. monthly ROI", "החזר חודשי מוערך")}</span></div>
+          <div class="cell"><b>${roi.breakEvenLeads}</b><span>${t("leads to break even", "לידים לאיזון")}</span></div>
+        </div>
+        <div class="note">${esc(roi.assumptionsNote)}</div>
       </div>
     </div>`;
 }
