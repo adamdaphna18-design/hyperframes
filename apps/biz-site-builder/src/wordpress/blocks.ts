@@ -1,6 +1,7 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { bestReview, esc, stars, taglineFor } from "../generate/util.ts";
+import { servicesFor } from "../generate/services.ts";
 
 /**
  * Gutenberg block markup builders. The same markup seeds the WordPress WXR
@@ -101,10 +102,27 @@ export function contactBlock(business: Business, s: Strings): string {
   return `${heading(s.visitHeading(business.name))}\n${list}${map}`;
 }
 
+/** A services / price-list block (the business's own, else a trade starter menu). */
+export function servicesBlock(business: Business, s: Strings): string {
+  const items = servicesFor(business, s);
+  if (!items.length) return "";
+  const title = s.code === "he" ? "השירותים שלנו" : "Our services";
+  const rows = items
+    .slice(0, 10)
+    .map(
+      (it) =>
+        `<!-- wp:list-item --><li>${esc(it.name)}${it.price ? ` — <strong>${esc(it.price)}</strong>` : ""}</li><!-- /wp:list-item -->`,
+    )
+    .join("");
+  return `${heading(title)}\n<!-- wp:list -->\n<ul class="wp-block-list">${rows}</ul>\n<!-- /wp:list -->`;
+}
+
 /** Full block body for the Home page. */
 export function homePage(business: Business, s: Strings): string {
   const parts = [heroBlock(business, s)];
   if (business.description) parts.push(heading(s.about), paragraph(business.description));
+  const services = servicesBlock(business, s);
+  if (services) parts.push(services);
   const gallery = galleryBlock(business);
   if (gallery) parts.push(gallery);
   const featured = bestReview(business);

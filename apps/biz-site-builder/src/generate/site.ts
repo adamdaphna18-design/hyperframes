@@ -18,6 +18,7 @@ import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
 import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
 import { chatWidgetSnippet, hasChatWidget, type ChatWidgetOptions } from "./chatwidget.ts";
+import { glyphFor, isStarterMenu, servicesFor } from "./services.ts";
 import { extractKeywords } from "./keywords.ts";
 import { cityOf } from "./meta.ts";
 
@@ -117,6 +118,42 @@ export function generateSite(
     ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${cssUrl(business.images[0])}');`
     : `background: radial-gradient(120% 120% at 30% 20%, ${p.accentDeep}, #0a0a0f);`;
 
+  // Services / price menu — the business's own, else a trade-appropriate starter.
+  const menuItems = servicesFor(business, s);
+  const heading = s.code === "he" ? "השירותים שלנו" : "Our services";
+  const priceLabel = s.code === "he" ? "מחיר" : "Price";
+  const starterNote =
+    isStarterMenu(business) && menuItems.length
+      ? s.code === "he"
+        ? '<p class="menu-note">מחירון לדוגמה — קל לעדכן לפי העסק שלכם.</p>'
+        : '<p class="menu-note">Sample price list — easy to tailor to your business.</p>'
+      : "";
+  const servicesSection = menuItems.length
+    ? `<section class="menu" id="services" aria-label="${esc(heading)}"><div class="wrap">
+        <h2>${esc(heading)}</h2>
+        <ul class="price-list">
+          ${menuItems
+            .slice(0, 10)
+            .map(
+              (it) =>
+                `<li><span class="mi-name">${esc(it.name)}${it.note ? ` <em>${esc(it.note)}</em>` : ""}</span>${it.price ? `<span class="mi-price" aria-label="${esc(priceLabel)}">${esc(it.price)}</span>` : ""}</li>`,
+            )
+            .join("\n          ")}
+        </ul>
+        ${starterNote}
+      </div></section>`
+    : "";
+
+  // When the business has no photos, a tasteful glyph placeholder beats an empty page.
+  const glyph = glyphFor(business, s);
+  const placeholderGallery = business.images.length
+    ? ""
+    : `<section class="gallery placeholder" aria-hidden="true"><div class="wrap gal-wrap">
+        ${[0, 1, 2]
+          .map((i) => `<figure class="ph" style="--i:${i}"><span>${glyph}</span></figure>`)
+          .join("\n        ")}
+      </div></section>`;
+
   return `<!doctype html>
 <html lang="${s.lang}" dir="${s.dir}">
   <head>
@@ -178,6 +215,15 @@ export function generateSite(
       }
       .gallery .wrap { display: contents; }
       .gallery figure { overflow: hidden; border-radius: 14px; aspect-ratio: 4 / 3; background: #e7e7ee; }
+      .menu .price-list { list-style: none; max-width: 640px; display: grid; gap: 2px; }
+      .menu .price-list li { display: flex; align-items: baseline; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,.08); }
+      .menu .mi-name { font-weight: 600; font-size: 18px; }
+      .menu .mi-name em { font-weight: 400; font-style: normal; color: #565d6b; font-size: 14px; }
+      .menu .mi-price { margin-inline-start: auto; font-weight: 800; color: var(--accent-ink); white-space: nowrap; font-size: 18px; }
+      .menu .menu-note { margin-top: 16px; color: #565d6b; font-size: 14px; }
+      .gallery.placeholder .gal-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .gallery.placeholder .ph { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 14px; font-size: 54px; color: #fff; background: linear-gradient(150deg, var(--accent), var(--accent-deep)); opacity: .92; }
+      @media (max-width: 640px) { .gallery.placeholder .gal-wrap { grid-template-columns: 1fr 1fr; } }
       .gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .reviews { background: var(--surface); }
       .review-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
@@ -200,7 +246,7 @@ export function generateSite(
   <body>
     <header class="hero">
       <div class="wrap">
-        <div class="badge" aria-hidden="true">${esc(initials(business.name))}</div>
+        <div class="badge" aria-hidden="true">${business.images.length ? esc(initials(business.name)) : glyphFor(business, s)}</div>
         <h1>${esc(business.name)}</h1>
         <p class="tagline">${esc(tagline)}</p>
         ${business.rating !== undefined ? `<div class="rating">${stars(business.rating)} ${business.rating.toFixed(1)}</div>` : ""}
@@ -217,7 +263,8 @@ export function generateSite(
           ? `<section class="about"><div class="wrap"><h2>${esc(s.about)}</h2><p>${esc(business.description)}</p></div></section>`
           : ""
       }
-      ${gallery ? `<div class="wrap">${gallery}</div>` : ""}
+      ${servicesSection}
+      ${gallery ? `<div class="wrap">${gallery}</div>` : placeholderGallery}
       ${reviews ? `<div class="wrap">${reviews}</div>` : ""}
       <section class="contact" id="contact">
         <div class="wrap">

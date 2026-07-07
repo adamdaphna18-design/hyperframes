@@ -39,6 +39,8 @@ export interface Business {
   hours?: string;
   /** Absolute image URLs (logo, storefront, product shots). */
   images: string[];
+  /** Services / price-list items shown on the site (falls back to a trade menu). */
+  services?: Array<{ name: string; price?: string; note?: string }>;
   reviews: Review[];
   /** Aggregate rating 0–5 if the source provides one. */
   rating?: number;
