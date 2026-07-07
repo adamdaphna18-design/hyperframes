@@ -9,6 +9,8 @@ import { detectWebsite, verifyLive } from "./website/detect.ts";
 import { generateSite, siteSlug } from "./generate/site.ts";
 import { ogImageFilename, ogImageSvg } from "./generate/ogimage.ts";
 import type { AnalyticsOptions } from "./generate/analytics.ts";
+import { generateQuote, quoteHtml } from "./generate/quote.ts";
+import { scoreLead } from "./generate/lead.ts";
 import { generateVideo, videoSlug } from "./generate/video.ts";
 import { generateIndexHtml, generateIndexJson, type ListingEntry } from "./generate/listing.ts";
 import { generateRobots, generateSitemap } from "./generate/sitemap.ts";
@@ -54,6 +56,8 @@ export interface BuildOptions {
   brand?: string;
   /** Analytics providers (GA4 / Plausible) to inject into every page. */
   analytics?: AnalyticsOptions;
+  /** Also generate a price quote per site-less business (lead → quote). */
+  quotes?: boolean;
   /** Injected for tests. */
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
@@ -189,6 +193,18 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
         );
       }
 
+      if (opts.quotes) {
+        result.quotePath = await rt.step(`quote/${d.business.id}`, async () => {
+          const quote = generateQuote(d.business, d.status, s);
+          await writeFile(
+            join(sitesDir, `${slug}.quote.html`),
+            quoteHtml(d.business, quote, s),
+            "utf8",
+          );
+          return `sites/${slug}.quote.html`;
+        });
+      }
+
       if (opts.video) {
         const vslug = videoSlug(d.business);
         await mkdir(videosDir, { recursive: true });
@@ -211,10 +227,16 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
   // ── Assemble entries + directory ──
   const entries: ListingEntry[] = detected.map((d) => {
     const b = builtById.get(d.business.id);
-    const entry: ListingEntry = { business: d.business, status: d.status, locale: d.locale };
+    const entry: ListingEntry = {
+      business: d.business,
+      status: d.status,
+      locale: d.locale,
+      leadScore: scoreLead(d.business, d.status),
+    };
     if (b?.sitePath) entry.sitePath = b.sitePath;
     if (b?.wpBundlePath) entry.wpBundlePath = b.wpBundlePath;
     if (b?.videoPath) entry.videoPath = b.videoPath;
+    if (b?.quotePath) entry.quotePath = b.quotePath;
     return entry;
   });
 
@@ -264,6 +286,7 @@ interface BuiltArtifacts {
   sitePath?: string;
   wpBundlePath?: string;
   videoPath?: string;
+  quotePath?: string;
 }
 
 /** Write a WordPress bundle's files, creating dirs and marking scripts +x. */

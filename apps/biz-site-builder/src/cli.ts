@@ -24,6 +24,7 @@ interface ParsedArgs {
   brand?: string;
   gaId?: string;
   plausible?: string;
+  quotes: boolean;
   help: boolean;
 }
 
@@ -41,6 +42,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     resume: false,
     livePlugins: false,
     geocode: false,
+    quotes: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -110,6 +112,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--plausible":
         if (argv[++i]) args.plausible = argv[i];
         break;
+      case "--quotes":
+        args.quotes = true;
+        break;
       case "-h":
       case "--help":
         args.help = true;
@@ -156,6 +161,7 @@ Options:
       --brand <name>    Brand suffix appended to page <title>s
       --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event
       --plausible <domain>  Inject the Plausible analytics snippet
+      --quotes          Generate a price quote (lead → quote) per site-less business
   -h, --help            Show this help
 
 Output:
@@ -219,6 +225,7 @@ async function main(): Promise<void> {
       brand: args.brand,
       analytics:
         args.gaId || args.plausible ? { ga4: args.gaId, plausible: args.plausible } : undefined,
+      quotes: args.quotes,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)

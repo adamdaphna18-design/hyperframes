@@ -97,6 +97,16 @@ A business "has a website" only if it lists a **real, owned** URL. Facebook / In
 Google-Maps / Linktree links count as _not_ a website — those businesses still get one built. With
 `--verify-live`, listed URLs are HTTP-checked and **dead links** fall back to needing a site.
 
+## Lead scoring & quotes
+
+Every business gets a deterministic **lead score** (0–100, `src/generate/lead.ts`) — rewarding no
+owned site (the opportunity), rating, review volume, and reachability — surfaced in `index.json` and
+the directory. With `--quotes`, each site-less business also gets a client-ready **price quote**
+(`src/generate/quote.ts`): the recommended site type is picked from the category (EN + Hebrew
+keywords), priced from a fixed 2026 rate card scaled by review volume, and rendered as a
+self-contained localized (RTL for Hebrew) `sites/<slug>.quote.html`. This is the "lead → quote"
+step; delivery (email/WhatsApp) and CRM are intentionally out of scope for this generator.
+
 ## Local SEO, social & maps
 
 Every generated site is built for local search and social sharing, and closes the loop with the

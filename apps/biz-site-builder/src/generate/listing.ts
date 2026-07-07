@@ -13,6 +13,10 @@ export interface ListingEntry {
   videoPath?: string;
   /** Relative path to the generated WordPress deploy bundle directory. */
   wpBundlePath?: string;
+  /** Relative path to a generated price quote, if built. */
+  quotePath?: string;
+  /** Lead score 0–100 for this business. */
+  leadScore?: number;
   /** Locale the business's site/video were rendered in. */
   locale?: LocaleCode;
 }
@@ -33,6 +37,8 @@ export function generateIndexJson(entries: ListingEntry[]): string {
     generatedSite: e.sitePath ?? null,
     generatedVideo: e.videoPath ?? null,
     generatedWordPress: e.wpBundlePath ?? null,
+    generatedQuote: e.quotePath ?? null,
+    leadScore: e.leadScore ?? null,
     locale: e.locale ?? "en",
     keywords: extractKeywords(e.business, stringsFor(e.locale ?? "en")).all,
   }));
@@ -50,6 +56,8 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
     const links = [
       e.sitePath && `<a class="pill" href="${esc(e.sitePath)}">${esc(s.openSite)}</a>`,
       e.wpBundlePath && `<a class="pill wp" href="${esc(e.wpBundlePath)}">WordPress ▾</a>`,
+      e.quotePath &&
+        `<a class="pill quote" href="${esc(e.quotePath)}">${s.code === "he" ? "הצעת מחיר" : "Quote"}</a>`,
       e.videoPath && `<a class="pill ghost" href="${esc(e.videoPath)}">${esc(s.promoVideo)}</a>`,
       e.status.hasWebsite &&
         e.status.url &&
@@ -67,6 +75,7 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
           <span class="tag">${esc(s.reviewsCount(b.reviews.length))}</span>
           <span class="tag">${esc(s.photosCount(b.images.length))}</span>
           <span class="tag ${e.status.hasWebsite ? "ok" : "warn"}">${esc(e.status.hasWebsite ? s.hasWebsiteTag : s.needsWebsiteTag)}</span>
+          ${e.leadScore !== undefined ? `<span class="tag lead">${s.code === "he" ? "ליד" : "lead"} ${e.leadScore}</span>` : ""}
           ${e.locale === "he" ? `<span class="tag lang">עברית</span>` : ""}
         </div>
         <div class="links">${links || '<span class="muted">—</span>'}</div>
@@ -108,9 +117,11 @@ export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsF
       .tag.ok { background: #16351f; color: #9be8ad; }
       .tag.warn { background: #3a2a12; color: #f4c079; }
       .tag.lang { background: #1e2a44; color: #a9c5ff; }
+      .tag.lead { background: #2a2340; color: #c9b8f0; }
       .links { display: flex; gap: 8px; flex-wrap: wrap; }
       .pill { font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #3552cc; color: #fff; }
       .pill.wp { background: #1d6a8f; color: #fff; }
+      .pill.quote { background: #6d4bb8; color: #fff; }
       .pill.ghost { background: transparent; border: 1px solid #384056; color: #cdd6f4; }
       .muted { opacity: .4; }
     </style>
