@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultHarness } from "../../harness.js";
 import { selfHarness } from "../../loop.js";
 import { runSuite } from "../../runner.js";
+import { ModelProposer } from "../../proposer.js";
 import { HttpAgent } from "./http-agent.js";
+import { httpScriptedModel } from "./http-model.js";
 import { HttpHeuristicProposer } from "./http-proposer.js";
 import { buildPublicApiSuite } from "./tasks.js";
 import { runPublicApiDemo } from "./run.js";
@@ -61,10 +63,31 @@ describe("public-apis Self-Harness loop", () => {
   });
 });
 
+describe("model-driven proposer (the model edits its own harness)", () => {
+  it("reaches full pass rate with ModelProposer proposing the HTTP rules", async () => {
+    const result = await selfHarness({
+      agent,
+      proposer: new ModelProposer(httpScriptedModel()),
+      tasks: buildPublicApiSuite(),
+      initialHarness: defaultHarness(),
+    });
+
+    expect(result.finalPassRate).toBe(1);
+    expect(result.finalHarness.rules).toEqual(
+      expect.arrayContaining(["timeout-ms=2000", "retry-on-429", "follow-redirects"]),
+    );
+    // Every committed patch was authored by the model, not the heuristic.
+    const committed = result.rounds.filter((r) => r.acceptedPatchId);
+    expect(committed.length).toBeGreaterThan(0);
+    expect(committed.every((r) => r.acceptedPatchId?.startsWith("model-patch"))).toBe(true);
+  });
+});
+
 describe("demo entry point", () => {
   afterEach(() => vi.restoreAllMocks());
-  it("runs offline without throwing", async () => {
+  it("runs offline without throwing (heuristic and model proposers)", async () => {
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await expect(runPublicApiDemo()).resolves.toBeUndefined();
+    await expect(runPublicApiDemo({ useModel: true })).resolves.toBeUndefined();
   });
 });

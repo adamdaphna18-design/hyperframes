@@ -107,8 +107,14 @@ retry-on-429 rule, and the `maxToolCalls` attempt budget. Failures cluster by
 their real HTTP cause and the gate tunes the harness accordingly.
 
 ```bash
-bun run --filter @hyperframes/self-harness demo:apis   # offline (recorded client)
+bun run --filter @hyperframes/self-harness demo:apis         # heuristic proposer
+bun run --filter @hyperframes/self-harness demo:apis:model   # model proposes the rules
 ```
+
+`demo:apis:model` runs the same loop with the `ModelProposer`, so the model
+itself authors each harness rule (offline via a deterministic scripted
+stand-in; drop in `AnthropicModel` to have a live model propose them). Every
+committed patch is then a `model-patch`, not a heuristic one.
 
 ```
 ── round 1 — pass rate 33% ──   cluster: "request-timeout" × 2

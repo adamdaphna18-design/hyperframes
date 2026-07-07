@@ -48,5 +48,6 @@ export {
 } from "./examples/public-apis/http-client.js";
 export { HttpAgent, type ApiTask } from "./examples/public-apis/http-agent.js";
 export { HttpHeuristicProposer } from "./examples/public-apis/http-proposer.js";
+export { httpScriptedModel } from "./examples/public-apis/http-model.js";
 export { buildPublicApiSuite } from "./examples/public-apis/tasks.js";
 export { runPublicApiDemo } from "./examples/public-apis/run.js";
