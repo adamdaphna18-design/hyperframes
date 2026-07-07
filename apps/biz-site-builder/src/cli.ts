@@ -1,14 +1,23 @@
 #!/usr/bin/env bun
 import { createSource } from "./sources/index.ts";
-import { build } from "./pipeline.ts";
+import { build, type OutputTarget } from "./pipeline.ts";
+import type { LocaleCode } from "./i18n/strings.ts";
 
 interface ParsedArgs {
   command: string;
   sources: string[];
   out: string;
+  target: OutputTarget;
   video: boolean;
   verifyLive: boolean;
   limit: number;
+  concurrency: number;
+  budget: number | null;
+  resume: boolean;
+  locale?: LocaleCode;
+  market?: string;
+  wpTheme?: string;
+  livePlugins: boolean;
   help: boolean;
 }
 
@@ -17,9 +26,14 @@ function parseArgs(argv: string[]): ParsedArgs {
     command: argv[0] && !argv[0].startsWith("-") ? argv[0] : "build",
     sources: [],
     out: ".out",
+    target: "wordpress",
     video: false,
     verifyLive: false,
     limit: 0,
+    concurrency: 8,
+    budget: null,
+    resume: false,
+    livePlugins: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -33,6 +47,12 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--out":
         if (argv[++i]) args.out = argv[i]!;
         break;
+      case "-t":
+      case "--target": {
+        const v = argv[++i];
+        if (v === "static" || v === "wordpress" || v === "both") args.target = v;
+        break;
+      }
       case "--video":
         args.video = true;
         break;
@@ -41,6 +61,29 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--limit":
         args.limit = Number(argv[++i]) || 0;
+        break;
+      case "--concurrency":
+        args.concurrency = Number(argv[++i]) || 8;
+        break;
+      case "--budget":
+        args.budget = Number(argv[++i]) || null;
+        break;
+      case "--resume":
+        args.resume = true;
+        break;
+      case "--locale": {
+        const v = argv[++i];
+        if (v === "en" || v === "he") args.locale = v;
+        break;
+      }
+      case "--market":
+        if (argv[++i]) args.market = argv[i];
+        break;
+      case "--wp-theme":
+        if (argv[++i]) args.wpTheme = argv[i];
+        break;
+      case "--live-plugins":
+        args.livePlugins = true;
         break;
       case "-h":
       case "--help":
@@ -51,7 +94,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   return args;
 }
 
-const HELP = `biz-site-builder — scrape/list businesses, build sites + promo videos for those without one
+const HELP = `biz-site-builder — scrape/list businesses, build WordPress sites (+ promo videos) for those without one
 
 Usage:
   biz-site-builder build --source <type:spec> [--source ...] [options]
@@ -61,26 +104,41 @@ Sources (repeatable, merged in order — later sources enrich earlier ones):
   json:./businesses.json            Ingest a JSON array (or {businesses|results|elements:[...]})
   overpass:area=Brooklyn            Scrape OpenStreetMap businesses in a named area (free, no key)
   overpass:bbox=40.6,-74.0,40.7,-73.9   ...or within a bounding box (south,west,north,east)
-  overpass:area=Brooklyn,limit=200  Cap the number of scraped POIs
+  web:https://a.com,https://b.com   Ladder-style server-side scrape (JSON-LD/OG) → business profile
+  web:https://a.com;ua=googlebot    ...with a crawler user-agent to slip past soft paywalls
+
+Output target (--target, default: wordpress):
+  wordpress   Full WordPress deploy bundle per business (WXR + WP-CLI + Composer + block theme)
+  static      Self-contained static HTML site
+  both        Static site AND WordPress bundle
 
 Options:
   -o, --out <dir>       Output directory (default: .out)
+  -t, --target <t>      wordpress | static | both (default: wordpress)
       --video           Also build a hyperframes promo video per site-less business
       --verify-live     HTTP-check listed sites; rebuild for dead links
       --limit <n>       Only build for the first N site-less businesses
+      --concurrency <n> Max parallel build steps (workflow runtime; default: 8)
+      --budget <n>      Hard ceiling on build units (workflow budget)
+      --resume          Persist + replay a resume journal (<out>/.workflow.json)
+      --locale <en|he>  Force a language for all sites (default: auto-detect)
+      --market <name>   Market hint; "israel" → Hebrew (RTL)
+      --wp-theme <slug> Base WordPress theme to extend (default: twentytwentyfour)
+      --live-plugins    Augment plugin choices via the WordPress.org plugins API
   -h, --help            Show this help
 
 Output:
-  <out>/index.html      Browsable directory of every business + outcome
-  <out>/index.json      Machine-readable listing
-  <out>/sites/*.html    A generated static website per site-less business
-  <out>/videos/*.html   Hyperframes promo compositions (render with: npx hyperframes render <file>)
+  <out>/index.html          Browsable directory of every business + outcome
+  <out>/index.json          Machine-readable listing
+  <out>/sites/<slug>/       WordPress deploy bundle (provision.sh, content.wxr.xml, theme/, composer.json)
+  <out>/sites/<slug>.html   Static site (target static/both)
+  <out>/videos/*.html       Hyperframes promo compositions (render: npx hyperframes render <file>)
 
-Example:
+Example (Israel market, Hebrew WordPress sites + videos):
   biz-site-builder build \\
-    --source overpass:area=Brooklyn,limit=150 \\
-    --source csv:./reviews-and-photos.csv \\
-    --out ./directory --video --verify-live
+    --source overpass:area="Tel Aviv",limit=150 \\
+    --source csv:./reviews.csv \\
+    --market israel --target wordpress --video --out ./directory
 `;
 
 async function main(): Promise<void> {
@@ -113,13 +171,24 @@ async function main(): Promise<void> {
     const result = await build({
       sources,
       outDir: args.out,
+      target: args.target,
       video: args.video,
       verifyLive: args.verifyLive,
       limit: args.limit,
+      concurrency: args.concurrency,
+      budget: args.budget,
+      resume: args.resume,
+      locale: args.locale,
+      market: args.market,
+      wpBaseTheme: args.wpTheme,
+      livePlugins: args.livePlugins,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
+    const locales = Object.entries(result.localesUsed)
+      .map(([k, v]) => `${v} ${k}`)
+      .join(", ");
     process.stdout.write(
-      `\n✓ ${result.outDir}/index.html — ${result.total} listed, ${result.sitesBuilt} sites, ${result.videosBuilt} videos.\n`,
+      `\n✓ ${result.outDir}/index.html — ${result.total} listed, ${result.wordpressBuilt} WordPress, ${result.staticBuilt} static, ${result.videosBuilt} videos (${locales}).\n`,
     );
   } catch (err) {
     process.stderr.write(`Build failed: ${(err as Error).message}\n`);

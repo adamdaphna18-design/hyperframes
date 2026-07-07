@@ -1,4 +1,6 @@
 import type { Business, WebsiteStatus } from "../types.ts";
+import type { LocaleCode, Strings } from "../i18n/strings.ts";
+import { stringsFor } from "../i18n/strings.ts";
 import { esc, initials, paletteFor, stars } from "./util.ts";
 
 export interface ListingEntry {
@@ -8,6 +10,10 @@ export interface ListingEntry {
   sitePath?: string;
   /** Relative path to the generated promo video composition, if built. */
   videoPath?: string;
+  /** Relative path to the generated WordPress deploy bundle directory. */
+  wpBundlePath?: string;
+  /** Locale the business's site/video were rendered in. */
+  locale?: LocaleCode;
 }
 
 /** Machine-readable directory of everything the run produced. */
@@ -25,12 +31,14 @@ export function generateIndexJson(entries: ListingEntry[]): string {
     reviewCount: e.business.reviews.length,
     generatedSite: e.sitePath ?? null,
     generatedVideo: e.videoPath ?? null,
+    generatedWordPress: e.wpBundlePath ?? null,
+    locale: e.locale ?? "en",
   }));
   return JSON.stringify(data, null, 2) + "\n";
 }
 
 /** Human-browsable directory page listing every business and its outcome. */
-export function generateIndexHtml(entries: ListingEntry[]): string {
+export function generateIndexHtml(entries: ListingEntry[], s: Strings = stringsFor("en")): string {
   const needs = entries.filter((e) => !e.status.hasWebsite);
   const has = entries.filter((e) => e.status.hasWebsite);
 
@@ -38,24 +46,26 @@ export function generateIndexHtml(entries: ListingEntry[]): string {
     const p = paletteFor(e.business);
     const b = e.business;
     const links = [
-      e.sitePath && `<a class="pill" href="${esc(e.sitePath)}">Open site</a>`,
-      e.videoPath && `<a class="pill ghost" href="${esc(e.videoPath)}">Promo video</a>`,
+      e.sitePath && `<a class="pill" href="${esc(e.sitePath)}">${esc(s.openSite)}</a>`,
+      e.wpBundlePath && `<a class="pill wp" href="${esc(e.wpBundlePath)}">WordPress ▾</a>`,
+      e.videoPath && `<a class="pill ghost" href="${esc(e.videoPath)}">${esc(s.promoVideo)}</a>`,
       e.status.hasWebsite &&
         e.status.url &&
-        `<a class="pill ghost" href="${esc(e.status.url)}" target="_blank" rel="noopener">Existing site ↗</a>`,
+        `<a class="pill ghost" href="${esc(e.status.url)}" target="_blank" rel="noopener">${esc(s.existingSite)}</a>`,
     ]
       .filter(Boolean)
       .join(" ");
-    return `<article class="card">
+    return `<article class="card"${e.locale ? ` lang="${e.locale}"` : ""}>
       <div class="ava" style="background:linear-gradient(135deg, ${p.accent}, ${p.accentDeep})">${esc(initials(b.name))}</div>
       <div class="body">
         <h3>${esc(b.name)}</h3>
         <div class="meta">${[esc(b.category ?? ""), esc(b.address ?? "")].filter(Boolean).join(" · ")}</div>
         <div class="tags">
           ${b.rating !== undefined ? `<span class="tag">${stars(b.rating)} ${b.rating.toFixed(1)}</span>` : ""}
-          <span class="tag">${b.reviews.length} review${b.reviews.length === 1 ? "" : "s"}</span>
-          <span class="tag">${b.images.length} photo${b.images.length === 1 ? "" : "s"}</span>
-          <span class="tag ${e.status.hasWebsite ? "ok" : "warn"}">${e.status.hasWebsite ? "has website" : "needs website"}</span>
+          <span class="tag">${esc(s.reviewsCount(b.reviews.length))}</span>
+          <span class="tag">${esc(s.photosCount(b.images.length))}</span>
+          <span class="tag ${e.status.hasWebsite ? "ok" : "warn"}">${esc(e.status.hasWebsite ? s.hasWebsiteTag : s.needsWebsiteTag)}</span>
+          ${e.locale === "he" ? `<span class="tag lang">עברית</span>` : ""}
         </div>
         <div class="links">${links || '<span class="muted">—</span>'}</div>
       </div>
@@ -68,11 +78,11 @@ export function generateIndexHtml(entries: ListingEntry[]): string {
       : "";
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${s.lang}" dir="${s.dir}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Business Directory — ${entries.length} listings</title>
+    <title>${esc(s.directoryTitle)} — ${entries.length}</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0d0f16; color: #eef; padding: 48px 24px; }
@@ -95,8 +105,10 @@ export function generateIndexHtml(entries: ListingEntry[]): string {
       .tag { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #222838; }
       .tag.ok { background: #16351f; color: #9be8ad; }
       .tag.warn { background: #3a2a12; color: #f4c079; }
+      .tag.lang { background: #1e2a44; color: #a9c5ff; }
       .links { display: flex; gap: 8px; flex-wrap: wrap; }
       .pill { font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #4f7cff; color: #fff; }
+      .pill.wp { background: #21759b; color: #fff; }
       .pill.ghost { background: transparent; border: 1px solid #384056; color: #cdd6f4; }
       .muted { opacity: .4; }
     </style>
@@ -104,16 +116,16 @@ export function generateIndexHtml(entries: ListingEntry[]): string {
   <body>
     <div class="wrap">
       <header>
-        <h1>Business Directory</h1>
-        <p>Scraped and listed ${entries.length} businesses. Sites and promo videos were auto-built for those without one.</p>
+        <h1>${esc(s.directoryTitle)}</h1>
+        <p>${esc(s.directorySubtitle(entries.length))}</p>
       </header>
       <div class="stats">
-        <div class="stat"><b>${entries.length}</b><span>businesses listed</span></div>
-        <div class="stat"><b>${needs.length}</b><span>needed a website</span></div>
-        <div class="stat"><b>${has.length}</b><span>already had one</span></div>
+        <div class="stat"><b>${entries.length}</b><span>${esc(s.businessesListed)}</span></div>
+        <div class="stat"><b>${needs.length}</b><span>${esc(s.neededWebsite)}</span></div>
+        <div class="stat"><b>${has.length}</b><span>${esc(s.alreadyHad)}</span></div>
       </div>
-      ${section("Websites built for these businesses", needs)}
-      ${section("Already have a website", has)}
+      ${section(s.sectionBuilt, needs)}
+      ${section(s.sectionHasSite, has)}
     </div>
   </body>
 </html>

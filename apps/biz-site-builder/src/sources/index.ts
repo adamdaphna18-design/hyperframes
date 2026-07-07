@@ -2,10 +2,12 @@ import type { Business, BusinessSource } from "../types.ts";
 import { CsvSource } from "./csv.ts";
 import { JsonSource } from "./json.ts";
 import { OverpassSource, parseOverpassSpec } from "./overpass.ts";
+import { parseWebSpec, WebSource } from "./web.ts";
 
 export { CsvSource } from "./csv.ts";
 export { JsonSource } from "./json.ts";
 export { OverpassSource } from "./overpass.ts";
+export { WebSource } from "./web.ts";
 export { normalizeRecord, slugify } from "./normalize.ts";
 
 /**
@@ -27,8 +29,11 @@ export function createSource(spec: string): BusinessSource {
     case "overpass":
     case "osm":
       return new OverpassSource(parseOverpassSpec(rest));
+    case "web":
+    case "url":
+      return new WebSource(parseWebSpec(rest));
     default:
-      throw new Error(`Unknown source type "${type}". Use csv:, json:, or overpass:.`);
+      throw new Error(`Unknown source type "${type}". Use csv:, json:, overpass:, or web:.`);
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
 import { slugify } from "../sources/normalize.ts";
 
 export { slugify };
@@ -73,8 +74,8 @@ export function initials(name: string): string {
   return letters.toUpperCase() || "•";
 }
 
-/** A short marketing tagline derived from available profile fields. */
-export function taglineFor(business: Business): string {
+/** A short marketing tagline derived from available profile fields, localised. */
+export function taglineFor(business: Business, s: Strings): string {
   if (business.description) {
     const firstSentence = business.description.split(/(?<=[.!?])\s/)[0]?.trim();
     if (firstSentence && firstSentence.length <= 90) return firstSentence;
@@ -83,10 +84,10 @@ export function taglineFor(business: Business): string {
   const where =
     business.address?.split(",").slice(-2, -1)[0]?.trim() ??
     business.address?.split(",")[0]?.trim();
-  if (business.category && where) return `${business.category} in ${where}`;
-  if (business.category) return `Your local ${business.category.toLowerCase()}`;
-  if (where) return `Proudly serving ${where}`;
-  return "Now open — come say hello";
+  if (business.category && where) return s.categoryIn(business.category, where);
+  if (business.category) return s.localCategory(business.category);
+  if (where) return s.proudlyServing(where);
+  return s.nowOpen;
 }
 
 export function bestReview(business: Business) {

@@ -1,19 +1,22 @@
 import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
+import { stringsFor } from "../i18n/strings.ts";
 import { bestReview, esc, initials, outputSlug, paletteFor, stars, taglineFor } from "./util.ts";
 
 /**
  * Generate a self-contained, responsive one-page website for a business from
  * its profile, images and community reviews. No external CSS/JS — the file is
- * portable and can be dropped on any static host.
+ * portable and can be dropped on any static host. Fully localised: pass the
+ * Hebrew string table and the document renders right-to-left in Hebrew.
  */
-export function generateSite(business: Business): string {
+export function generateSite(business: Business, s: Strings = stringsFor("en")): string {
   const p = paletteFor(business);
-  const tagline = taglineFor(business);
+  const tagline = taglineFor(business, s);
   const mapsQuery = encodeURIComponent(business.address ?? business.name);
   const telHref = business.phone ? business.phone.replace(/[^+\d]/g, "") : "";
 
   const gallery = business.images.length
-    ? `<section class="gallery" id="gallery" aria-label="Photos">
+    ? `<section class="gallery" id="gallery" aria-label="${esc(s.photosCount(business.images.length))}">
         ${business.images
           .slice(0, 8)
           .map(
@@ -25,14 +28,14 @@ export function generateSite(business: Business): string {
     : "";
 
   const reviews = business.reviews.length
-    ? `<section class="reviews" id="reviews" aria-label="Reviews">
-        <h2>What people say</h2>
+    ? `<section class="reviews" id="reviews" aria-label="${esc(s.whatPeopleSay)}">
+        <h2>${esc(s.whatPeopleSay)}</h2>
         <div class="review-grid">
           ${business.reviews
             .slice(0, 6)
             .map(
               (r) => `<blockquote>
-            ${r.rating !== undefined ? `<div class="stars" aria-label="${r.rating} out of 5">${stars(r.rating)}</div>` : ""}
+            ${r.rating !== undefined ? `<div class="stars" aria-label="${r.rating}/5">${stars(r.rating)}</div>` : ""}
             <p>${esc(r.text)}</p>
             ${r.author ? `<cite>— ${esc(r.author)}</cite>` : ""}
           </blockquote>`,
@@ -44,12 +47,13 @@ export function generateSite(business: Business): string {
 
   const contactRows = [
     business.address &&
-      `<li><span>Address</span><a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}" target="_blank" rel="noopener">${esc(business.address)}</a></li>`,
+      `<li><span>${esc(s.addressLabel)}</span><a href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}" target="_blank" rel="noopener">${esc(business.address)}</a></li>`,
     business.phone &&
-      `<li><span>Phone</span><a href="tel:${esc(telHref)}">${esc(business.phone)}</a></li>`,
+      `<li><span>${esc(s.phoneLabel)}</span><a href="tel:${esc(telHref)}">${esc(business.phone)}</a></li>`,
     business.email &&
-      `<li><span>Email</span><a href="mailto:${esc(business.email)}">${esc(business.email)}</a></li>`,
-    business.hours && `<li><span>Hours</span><span>${esc(business.hours)}</span></li>`,
+      `<li><span>${esc(s.emailLabel)}</span><a href="mailto:${esc(business.email)}">${esc(business.email)}</a></li>`,
+    business.hours &&
+      `<li><span>${esc(s.hoursLabel)}</span><span>${esc(business.hours)}</span></li>`,
   ]
     .filter(Boolean)
     .join("\n          ");
@@ -59,7 +63,7 @@ export function generateSite(business: Business): string {
     : `background: radial-gradient(120% 120% at 30% 20%, ${p.accent}, ${p.accentDeep});`;
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${s.lang}" dir="${s.dir}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -141,8 +145,8 @@ export function generateSite(business: Business): string {
         <p class="tagline">${esc(tagline)}</p>
         ${business.rating !== undefined ? `<div class="rating">${stars(business.rating)} ${business.rating.toFixed(1)}</div>` : ""}
         <div class="cta-row">
-          ${business.phone ? `<a class="btn btn-primary" href="tel:${esc(telHref)}">Call us</a>` : ""}
-          ${business.address ? `<a class="btn btn-ghost" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}" target="_blank" rel="noopener">Get directions</a>` : `<a class="btn btn-ghost" href="#contact">Contact</a>`}
+          ${business.phone ? `<a class="btn btn-primary" href="tel:${esc(telHref)}">${esc(s.callUs)}</a>` : ""}
+          ${business.address ? `<a class="btn btn-ghost" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}" target="_blank" rel="noopener">${esc(s.getDirections)}</a>` : `<a class="btn btn-ghost" href="#contact">${esc(s.contact)}</a>`}
         </div>
       </div>
     </header>
@@ -150,16 +154,16 @@ export function generateSite(business: Business): string {
     <main>
       ${
         business.description
-          ? `<section class="about"><div class="wrap"><h2>About</h2><p>${esc(business.description)}</p></div></section>`
+          ? `<section class="about"><div class="wrap"><h2>${esc(s.about)}</h2><p>${esc(business.description)}</p></div></section>`
           : ""
       }
       ${gallery ? `<div class="wrap">${gallery}</div>` : ""}
       ${reviews ? `<div class="wrap">${reviews}</div>` : ""}
       <section class="contact" id="contact">
         <div class="wrap">
-          <h2>Visit ${esc(business.name)}</h2>
+          <h2>${esc(s.visitHeading(business.name))}</h2>
           <ul>
-          ${contactRows || `<li><span>Contact</span><span>Get in touch to learn more.</span></li>`}
+          ${contactRows || `<li><span>${esc(s.contact)}</span><span>${esc(s.contactFallback)}</span></li>`}
           </ul>
         </div>
       </section>
@@ -168,7 +172,7 @@ export function generateSite(business: Business): string {
     <footer>
       <div class="wrap">
         <div>© ${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}</div>
-        <div class="built">Site auto-built by biz-site-builder from this business's public profile${bestReview(business) ? " and community reviews" : ""}.</div>
+        <div class="built">${esc(s.builtBy(!!bestReview(business)))}</div>
       </div>
     </footer>
   </body>

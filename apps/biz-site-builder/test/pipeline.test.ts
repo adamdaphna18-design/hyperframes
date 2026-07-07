@@ -25,6 +25,7 @@ describe("build (end to end)", () => {
     const result = await build({
       sources: [new CsvSource(join(FIX, "businesses.sample.csv"))],
       outDir,
+      target: "both",
       video: true,
     });
 
@@ -33,6 +34,8 @@ describe("build (end to end)", () => {
     expect(result.total).toBe(5);
     expect(result.needsWebsite).toBe(3);
     expect(result.sitesBuilt).toBe(3);
+    expect(result.staticBuilt).toBe(3);
+    expect(result.wordpressBuilt).toBe(3);
     expect(result.videosBuilt).toBe(3);
 
     const index = JSON.parse(await readFile(join(outDir, "index.json"), "utf8"));
@@ -40,15 +43,35 @@ describe("build (end to end)", () => {
     const rosa = index.find((e: { name: string }) => e.name === "Rosa's Trattoria");
     expect(rosa.needsWebsite).toBe(true);
     expect(rosa.generatedSite).toBeTruthy();
+    expect(rosa.generatedWordPress).toBeTruthy();
     expect(rosa.generatedVideo).toBeTruthy();
 
     const cornerCuts = index.find((e: { name: string }) => e.name === "Corner Cuts Barbershop");
     expect(cornerCuts.needsWebsite).toBe(true);
     expect(cornerCuts.reason).toContain("social");
 
-    // The generated site file actually exists and contains the name.
+    // The generated static site file actually exists and contains the name.
     const siteHtml = await readFile(join(outDir, rosa.generatedSite), "utf8");
     expect(siteHtml).toContain("Rosa&#39;s Trattoria");
+
+    // The WordPress bundle exists with its key files.
+    const wxr = await readFile(join(outDir, rosa.generatedWordPress, "content.wxr.xml"), "utf8");
+    expect(wxr).toContain("<wp:wxr_version>1.2</wp:wxr_version>");
+    const provision = await readFile(join(outDir, rosa.generatedWordPress, "provision.sh"), "utf8");
+    expect(provision).toContain("wp import content.wxr.xml");
+  });
+
+  test("defaults to the WordPress target", async () => {
+    const outDir = await out();
+    const result = await build({
+      sources: [new CsvSource(join(FIX, "businesses.sample.csv"))],
+      outDir,
+    });
+    expect(result.wordpressBuilt).toBe(3);
+    expect(result.staticBuilt).toBe(0);
+    const rosa = result.entries.find((e) => e.business.name === "Rosa's Trattoria")!;
+    expect(rosa.wpBundlePath).toBeTruthy();
+    expect(rosa.sitePath).toBeUndefined();
   });
 
   test("merges multiple sources, enriching reviews and images", async () => {

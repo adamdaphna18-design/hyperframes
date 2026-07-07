@@ -1,0 +1,116 @@
+import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
+import { paletteFor, slugify } from "../generate/util.ts";
+import { homePage } from "./blocks.ts";
+
+/**
+ * Generate a minimal WordPress **block child theme** for a business, derived
+ * from a base theme (default: Twenty Twenty-Four). It carries a `theme.json`
+ * palette built from the business's colours and a `front-page.html` template
+ * with the same block markup used in the WXR import, so the site looks right the
+ * moment the theme is active — before any content import.
+ */
+export interface ThemeFile {
+  path: string;
+  content: string;
+}
+
+export function themeSlug(business: Business): string {
+  return `${slugify(business.name)}-theme`;
+}
+
+export function generateTheme(
+  business: Business,
+  s: Strings,
+  baseTheme = "twentytwentyfour",
+): ThemeFile[] {
+  const p = paletteFor(business);
+  const slug = themeSlug(business);
+
+  const styleCss = `/*
+Theme Name: ${business.name} Theme
+Theme URI:
+Description: Auto-generated block child theme for ${business.name}, built by biz-site-builder.
+Template: ${baseTheme}
+Version: 1.0.0
+Text Domain: ${slug}
+${s.dir === "rtl" ? "Tags: rtl-language-support\n" : ""}*/
+`;
+
+  const themeJson = JSON.stringify(
+    {
+      $schema: "https://schemas.wp.org/trunk/theme.json",
+      version: 2,
+      settings: {
+        appearanceTools: true,
+        color: {
+          palette: [
+            { slug: "accent", name: "Accent", color: hslToHex(p.hue, 82, 56) },
+            { slug: "accent-deep", name: "Accent Deep", color: hslToHex(p.hue, 74, 42) },
+            { slug: "ink", name: "Ink", color: p.ink },
+            { slug: "surface", name: "Surface", color: "#ffffff" },
+            { slug: "white", name: "White", color: "#ffffff" },
+          ],
+        },
+        typography: { fluid: true },
+        layout: { contentSize: "760px", wideSize: "1140px" },
+      },
+      styles: {
+        color: {
+          background: "var(--wp--preset--color--surface)",
+          text: "var(--wp--preset--color--ink)",
+        },
+        elements: {
+          button: {
+            color: {
+              background: "var(--wp--preset--color--accent)",
+              text: "var(--wp--preset--color--white)",
+            },
+          },
+          link: { color: { text: "var(--wp--preset--color--accent-deep)" } },
+        },
+      },
+    },
+    null,
+    2,
+  );
+
+  const frontPage = `<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->
+<main class="wp-block-group">
+${homePage(business, s)}
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->`;
+
+  return [
+    { path: `theme/${slug}/style.css`, content: styleCss },
+    { path: `theme/${slug}/theme.json`, content: themeJson + "\n" },
+    { path: `theme/${slug}/templates/front-page.html`, content: frontPage + "\n" },
+  ];
+}
+
+/** Minimal HSL→hex for theme.json (deterministic, no rounding surprises). */
+function hslToHex(h: number, s: number, l: number): string {
+  const sN = s / 100;
+  const lN = l / 100;
+  const c = (1 - Math.abs(2 * lN - 1)) * sN;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = lN - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const to = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}

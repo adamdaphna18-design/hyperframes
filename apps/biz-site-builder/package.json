@@ -2,17 +2,17 @@
   "name": "biz-site-builder",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "Scrape/ingest local business listings, detect which ones lack a website, and auto-build a static site + a hyperframes promo video for each from its profile, images and community reviews.",
   "bin": {
     "biz-site-builder": "./src/cli.ts"
   },
+  "type": "module",
   "scripts": {
     "start": "bun run src/cli.ts",
     "build": "bun run src/cli.ts build",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "demo": "bun run src/cli.ts build --source csv:fixtures/businesses.sample.csv --source json:fixtures/businesses.sample.json --out .out --video"
+    "demo": "bun run src/cli.ts build --source csv:fixtures/businesses.sample.csv --source json:fixtures/businesses.sample.json --out .out --target both --video"
   },
   "devDependencies": {
     "@types/bun": "latest",

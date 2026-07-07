@@ -1,4 +1,6 @@
 import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
+import { stringsFor } from "../i18n/strings.ts";
 import {
   bestReview,
   esc,
@@ -26,21 +28,23 @@ const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js";
  */
 export function generateVideo(
   business: Business,
-  opts: { width?: number; height?: number } = {},
+  opts: { width?: number; height?: number; strings?: Strings } = {},
 ): string {
   const width = opts.width ?? 1080;
   const height = opts.height ?? 1920;
+  const s = opts.strings ?? stringsFor("en");
   const id = `promo-${slugify(business.name)}`;
   const p = paletteFor(business);
-  const tagline = taglineFor(business);
+  const tagline = taglineFor(business, s);
   const review = bestReview(business);
   const hero = business.images[0];
   const duration = 9;
 
-  const contactLine = business.phone ?? business.address ?? business.email ?? "Come visit us today";
+  const contactLine =
+    business.phone ?? business.address ?? business.email ?? s.videoContactFallback;
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${s.lang}" dir="${s.dir}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=${width}, height=${height}" />
@@ -117,7 +121,7 @@ export function generateVideo(
         <div class="scene" data-scene="cta" style="opacity:0">
           <div class="cta-name">${esc(business.name)}</div>
           <div class="cta-line">${esc(contactLine)}</div>
-          <div class="cta-pill">Visit us</div>
+          <div class="cta-pill">${esc(s.visitUs)}</div>
         </div>
       </div>
     </div>
