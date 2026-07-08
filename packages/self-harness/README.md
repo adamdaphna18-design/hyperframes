@@ -254,6 +254,35 @@ bun run --filter @hyperframes/self-harness demo:ds:model   # model writes the ru
 # combine: --agentic --model → a model-governed agent whose rules a model also authors
 ```
 
+**Committee path.** `CommitteeProposer` puts every proposed edit before a
+three-voice panel before the gate sees it — inspired by
+[SR-Scientist](https://github.com/GAIR-NLP/SR-Scientist),
+[R&D-Agent](https://github.com/microsoft/RD-Agent), and
+[DR-Venus](https://github.com/inclusionAI/DR-Venus):
+
+| Judge            | Voice        | What it checks                                                                       |
+| ---------------- | ------------ | ------------------------------------------------------------------------------------ |
+| `EmpiricalJudge` | SR-Scientist | **Runs** the candidate; vetoes anything with no measurable gain or a regression      |
+| `ArchitectJudge` | R&D-Agent    | Structure/scalability — a declarative rule is clean, a hard compute clamp is a smell |
+| `EconomistJudge` | DR-Venus     | Resource cost — cheap edits score high; raising the budget is expensive              |
+
+The gate guarantees _correctness_; the committee raises the bar to
+_Pareto-optimal_ (proven, clean, cheap). A candidate is accepted only with no
+veto and an average ≥ 7.5, and every verdict is written to a `renderCourtRecords`
+markdown log.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ds:committee
+```
+
+```
+## ds-patch-5 (runaway-training) — VETOED, avg 4.0
+- SR-Scientist (empiricist): 0/10 · VETO — regresses 12 passing project(s)
+- R&D-Agent (architect):     4/10 · VETO — clamps the compute budget, won't scale
+- DR-Venus (economist):      8/10 — caps compute — cheap to run          ← the Pareto tension
+## ds-patch-6 (runaway-training) — ACCEPTED, avg 8.0  (the clean early-stopping rule)
+```
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.

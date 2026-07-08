@@ -111,5 +111,18 @@ export { DsAgent, type DsTask, type DsResult } from "./examples/data-science/ds-
 export { AgenticDsAgent, RuleAwareModel } from "./examples/data-science/agentic-agent.js";
 export { DsHeuristicProposer } from "./examples/data-science/ds-proposer.js";
 export { dsScriptedModel } from "./examples/data-science/ds-model.js";
+export {
+  CommitteeProposer,
+  EmpiricalJudge,
+  ArchitectJudge,
+  EconomistJudge,
+  defaultCommittee,
+  renderCourtRecords,
+  type Judge,
+  type JudgeVerdict,
+  type JudgeContext,
+  type CommitteeConfig,
+  type CommitteeVerdict,
+} from "./examples/data-science/committee.js";
 export { buildDsSuite, dsTasksAtLevel, growByLevel } from "./examples/data-science/tasks.js";
 export { runDataScienceDemo } from "./examples/data-science/run.js";
