@@ -35,6 +35,8 @@ export interface SiteOptions {
   analytics?: AnalyticsOptions;
   /** Embed an AI chat widget (the "AI Agent" service deliverable). */
   chatWidget?: ChatWidgetOptions;
+  /** Relative href to the generated SEO blog, if one was built. */
+  blogHref?: string;
 }
 
 /**
@@ -266,7 +268,7 @@ export function generateSite(
 
     <footer>
       <div class="wrap">
-        <div>© ${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}</div>
+        <div>© ${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}${opts.blogHref ? ` · <a href="${esc(safeUrl(opts.blogHref))}">${s.code === "he" ? "בלוג" : "Blog"}</a>` : ""}</div>
         <div class="built">${esc(s.builtBy(!!bestReview(business)))}</div>
       </div>
     </footer>

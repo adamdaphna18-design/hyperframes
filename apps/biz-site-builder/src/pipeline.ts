@@ -7,6 +7,7 @@ import { resolveLocale } from "./i18n/locale.ts";
 import { loadAndMerge } from "./sources/index.ts";
 import { detectWebsite, verifyLive } from "./website/detect.ts";
 import { generateSite, siteSlug } from "./generate/site.ts";
+import { generateBlog } from "./generate/blog.ts";
 import { ogImageFilename, ogImageSvg } from "./generate/ogimage.ts";
 import type { AnalyticsOptions } from "./generate/analytics.ts";
 import type { ChatWidgetOptions } from "./generate/chatwidget.ts";
@@ -59,6 +60,8 @@ export interface BuildOptions {
   analytics?: AnalyticsOptions;
   /** Embed an AI chat widget into every built site (the "AI Agent" deliverable). */
   chatWidget?: ChatWidgetOptions;
+  /** Also generate a per-trade SEO blog (ready articles, internal-linked) per site. */
+  blog?: boolean;
   /** Also generate a price quote per site-less business (lead → quote). */
   quotes?: boolean;
   /** Also build for existing sites on a weak/outdated stack (redesign leads; needs --verify-live). */
@@ -180,8 +183,19 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
               ogImage: opts.baseUrl ? `${opts.baseUrl.replace(/\/+$/, "")}/${ogPath}` : ogPath,
               analytics: opts.analytics,
               chatWidget: opts.chatWidget,
+              blogHref: opts.blog ? `${slug}.blog/index.html` : undefined,
             });
             await writeFile(join(sitesDir, `${slug}.html`), html, "utf8");
+            // SEO blog: ready-to-publish articles for the trade, linked back to the site.
+            if (opts.blog) {
+              const blogDir = join(sitesDir, `${slug}.blog`);
+              await mkdir(blogDir, { recursive: true });
+              const blog = generateBlog(d.business, s, { homeHref: `../${slug}.html` });
+              await writeFile(join(blogDir, "index.html"), blog.index, "utf8");
+              for (const post of blog.posts) {
+                await writeFile(join(blogDir, `${post.slug}.html`), post.html, "utf8");
+              }
+            }
             return `sites/${slug}.html`;
           },
           { cost: 1 },

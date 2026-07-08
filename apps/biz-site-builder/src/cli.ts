@@ -36,6 +36,7 @@ interface ParsedArgs {
   plausible?: string;
   quotes: boolean;
   includeWeak: boolean;
+  blog: boolean;
   url?: string;
   competitor?: string;
   csv?: string;
@@ -66,6 +67,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     geocode: false,
     quotes: false,
     includeWeak: false,
+    blog: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -140,6 +142,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--include-weak":
         args.includeWeak = true;
+        break;
+      case "--blog":
+        args.blog = true;
         break;
       case "--url":
         if (argv[++i]) args.url = argv[i];
@@ -546,6 +551,7 @@ async function main(): Promise<void> {
       chatWidget: args.chatWidget ? { src: args.chatWidget, embedId: args.chatEmbedId } : undefined,
       quotes: args.quotes,
       includeWeak: args.includeWeak,
+      blog: args.blog,
       log: (msg) => process.stdout.write(msg + "\n"),
     });
     const locales = Object.entries(result.localesUsed)
