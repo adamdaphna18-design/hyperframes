@@ -242,6 +242,18 @@ agent.
 bun run --filter @hyperframes/self-harness demo:ds:agentic
 ```
 
+**Rule-creator path.** By default a `DsHeuristicProposer` maps each cluster to a
+known best practice. Swap it for the `ModelProposer` and the model itself
+_authors_ the rule from the failure cluster — the loop goes from a rule _runner_
+to a rule _creator_, with the regression gate validating every rule the model
+writes. Offline it uses `dsScriptedModel` (a deterministic stand-in); drop in
+`AnthropicModel` for a live model.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ds:model   # model writes the rules
+# combine: --agentic --model → a model-governed agent whose rules a model also authors
+```
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
