@@ -147,3 +147,28 @@ export { osintScriptedModel } from "./examples/osint/osint-model.js";
 export { ComplianceJudge } from "./examples/osint/compliance-judge.js";
 export { buildOsintSuite } from "./examples/osint/tasks.js";
 export { runOsintDemo } from "./examples/osint/run.js";
+
+// Company brain: the three-layer "AI-ready company" system, gated by Self-Harness.
+export { SEED_SOURCES, type Source, type SourceKind } from "./examples/company-brain/sources.js";
+export {
+  InMemoryWarehouse,
+  seedWarehouse,
+  type Warehouse,
+} from "./examples/company-brain/warehouse.js";
+export {
+  VERTICALS,
+  PLAYBOOK_FOR_VERTICAL,
+  HARMFUL_SEO_RULE,
+  type Vertical,
+} from "./examples/company-brain/verticals.js";
+export { ingest, crossLink, type BrainPage } from "./examples/company-brain/ingest.js";
+export { CompanyBrain, LexicalRetriever, type Retriever } from "./examples/company-brain/brain.js";
+export {
+  CompanyAgent,
+  type CompanyTask,
+  type OsResult,
+} from "./examples/company-brain/os-agent.js";
+export { CompanyPlaybookProposer } from "./examples/company-brain/os-proposer.js";
+export { Orchestrator, type Deliverable } from "./examples/company-brain/orchestrator.js";
+export { buildCompanySuite } from "./examples/company-brain/tasks.js";
+export { runCompanyBrainDemo } from "./examples/company-brain/run.js";

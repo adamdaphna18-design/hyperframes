@@ -361,6 +361,49 @@ lookups — so only a targeted guardrail satisfies both.
 > corroborate, keep provenance) that keep recon lawful. A real drop-in wires each
 > probe to authorized tooling behind the very guardrails the loop learns here.
 
+## The system: an AI-ready company brain
+
+`src/examples/company-brain/` is the largest example — the whole three-layer
+"AI-ready company" blueprint, end to end and offline, with the Self-Harness loop
+as its spine:
+
+```
+sources ─▶ INGEST ─▶ the company brain ─▶ operating system ─▶ you approve ─▶ results
+(md)      tag +      wiki + search       Self-Harness learns   review        write back
+          cross-link (one memory)        the playbooks, gated                 ↺ compounds
+```
+
+- **Layer 1 — sources** (`sources.ts`): calls / chats / docs / transcripts. `ingest.ts` tags each and binds them by shared tags into a cross-linked wiki.
+- **Layer 2 — warehouse** (`warehouse.ts`): the numbers, behind a `Warehouse` interface — in-memory offline, SQLite/Postgres as a drop-in.
+- **The brain** (`brain.ts`): sources + data as one searchable memory. `search()` is lexical offline; the `Retriever` interface takes an embeddings drop-in. Agents `context(vertical)` it before acting; results `writeBack()` into it.
+- **Layer 3 — operating system**: an `Orchestrator` routes each vertical (SEO / CONTENT / PR / PAID / CRO) to its specialist `CompanyAgent`, which reads the brain and acts under the harness.
+
+The point is what makes the diagram's "results write back, it compounds" arrow
+**safe**. Naive write-back lets any result mutate the brain; here the Self-Harness
+**regression gate** is the spine — a playbook only compounds if it breaks nothing.
+The SEO cluster's aggressive candidate lifts organic sessions by stuffing
+keywords, which **regresses the CONTENT vertical's brand voice**, so the gate
+rejects it and forces the clean, targeted playbook.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:brain
+```
+
+```
+INGEST: 6 sources → brain (10 cross-links)
+OPERATING SYSTEM: Self-Harness learns the playbooks (regression-gated)
+  gate rejected an aggressive SEO edit: it would regress content
+  performing verticals: 20% → 100%
+  learned playbooks: target-intent-keywords, lead-with-the-proof, cap-cac-to-ltv, test-one-change-at-a-time
+YOU review + approve; approved deliverables file back into the brain:
+  ✓ ship seo … ✓ ship content … ✓ ship pr … ✓ ship paid … ✓ ship cro
+BRAIN COMPOUNDED: 6 → 10 pages   organic-sessions 0.4 → 0.9,  roas 0.5 → 0.85, …
+```
+
+Everything real is behind an interface (`Warehouse`, `Retriever`), so the offline
+deterministic run and a live drop-in (SQLite + embeddings + LLM specialists)
+share one pipeline — the same contract every other example holds.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -409,20 +452,21 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                     | Responsibility                                                               |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `types.ts`               | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
-| `harness.ts`             | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
-| `runner.ts`              | Run an agent over a task suite                                               |
-| `cluster.ts`             | Group failures into recurring patterns                                       |
-| `proposer.ts`            | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
-| `refining-proposer.ts`   | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
-| `gate.ts`                | The regression acceptance criterion                                          |
-| `loop.ts`                | The orchestrator (`selfHarness`)                                             |
-| `agents/`                | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
-| `models/`                | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
-| `demo/`                  | The runnable pathology suite + `runDemo`                                     |
-| `examples/public-apis/`  | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
-| `examples/bruno/`        | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
-| `examples/data-science/` | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
-| `examples/osint/`        | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
+| File                      | Responsibility                                                               |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `types.ts`                | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
+| `harness.ts`              | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
+| `runner.ts`               | Run an agent over a task suite                                               |
+| `cluster.ts`              | Group failures into recurring patterns                                       |
+| `proposer.ts`             | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
+| `refining-proposer.ts`    | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
+| `gate.ts`                 | The regression acceptance criterion                                          |
+| `loop.ts`                 | The orchestrator (`selfHarness`)                                             |
+| `agents/`                 | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
+| `models/`                 | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
+| `demo/`                   | The runnable pathology suite + `runDemo`                                     |
+| `examples/public-apis/`   | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
+| `examples/bruno/`         | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
+| `examples/data-science/`  | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
+| `examples/osint/`         | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
+| `examples/company-brain/` | Three-layer "AI-ready company": sources → brain → gated operating system     |
