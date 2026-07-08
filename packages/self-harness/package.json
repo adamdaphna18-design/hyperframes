@@ -33,6 +33,7 @@
   "scripts": {
     "build": "tsc",
     "demo": "tsx src/demo/run-demo.ts",
+    "demo:loop": "tsx src/demo/run-loop.ts",
     "demo:apis": "tsx src/examples/public-apis/run.ts",
     "demo:apis:model": "tsx src/examples/public-apis/run.ts --model",
     "demo:bruno": "tsx src/examples/bruno/run.ts",

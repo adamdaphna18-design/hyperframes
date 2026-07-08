@@ -26,6 +26,16 @@ export {
   type SelfHarnessConfig,
   type SelfHarnessResult,
 } from "./loop.js";
+export {
+  runSelfHarnessLoop,
+  renderMemory,
+  type SelfHarnessLoopConfig,
+  type SelfHarnessLoopResult,
+  type LoopIteration,
+  type LoopMemory,
+  type LoopStopContext,
+  type LoopStopReason,
+} from "./loop-runner.js";
 
 export { ScriptedModel } from "./models/scripted.js";
 export { AnthropicModel, type AnthropicModelOptions } from "./models/anthropic.js";
@@ -35,6 +45,7 @@ export { LlmAgent, renderHarness } from "./agents/llm.js";
 
 export { buildDemoSuite } from "./demo/pathologies.js";
 export { runDemo, describeEvent } from "./demo/run-demo.js";
+export { runLoopDemo } from "./demo/run-loop.js";
 
 // Real-world example: driving the loop against public-apis endpoints.
 export { ENDPOINTS, endpointByUrl, type ApiEndpoint } from "./examples/public-apis/endpoints.js";

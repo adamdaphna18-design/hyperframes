@@ -189,6 +189,41 @@ The `HttpAgent` gains an `envelope` mode so the response's real HTTP status
 reaches the assertions (`res.status: eq 200`). Point `loadBrunoCollection` at any
 Bruno collection on disk to tune a harness against your own requests.
 
+## The outer loop (`loop-runner`)
+
+`selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
+`runSelfHarnessLoop()` wraps it into an outer, self-pacing loop that maps 1:1
+onto the six-part loop-engineering anatomy — and closes the framework's biggest
+gap versus that model: a **persistent markdown memory** (`renderMemory` emits the
+`progress.md` the loop guide prescribes).
+
+| Loop anatomy   | In `runSelfHarnessLoop`                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Trigger**    | the outer `for` loop that repeats campaigns until a stop rule                                                |
+| **Execution**  | each iteration calls `selfHarness()` on the current suite                                                    |
+| **Verifier**   | reused as-is — the regression gate inside `selfHarness`                                                      |
+| **Stop Rules** | explicit: `shouldStop` predicate → converged (`convergenceRounds` quiet iterations) → `maxIterations` budget |
+| **Memory**     | the accumulated harness + `renderMemory()` progress markdown                                                 |
+| **Skills**     | the learned `rules[]`, carried forward as the next iteration's start                                         |
+
+```bash
+bun run --filter @hyperframes/self-harness demo:loop
+```
+
+```
+# Self-Harness Loop — progress.md
+**Stopped because:** converged   **Iterations:** 4   **Learned rules (skills):** 2
+### Iteration 1  tasks run: 2 (added: explore-audit)  pass 50% -> 100%  + rule: Stop exploring …
+### Iteration 2  tasks run: 3 (added: env-token)      pass 67% -> 100%  + rule: Persist env …
+### Iteration 3  (no change)  made progress: false
+### Iteration 4  (no change)  made progress: false → converged
+```
+
+`growSuite(iteration, harness)` lets each iteration introduce new tasks to
+harden against; the loop tunes the carried-forward harness until nothing new is
+learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
+`maxIterations` budget bound it explicitly.
+
 ## Design
 
 - **Harness as data.** `Harness` = system prompt + rules + typed limits + tools.
