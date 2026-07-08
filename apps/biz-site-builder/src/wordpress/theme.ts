@@ -1,6 +1,6 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
-import { paletteFor, slugify } from "../generate/util.ts";
+import { esc, paletteFor, slugify } from "../generate/util.ts";
 import { homePage } from "./blocks.ts";
 
 /**
@@ -55,6 +55,10 @@ ${s.dir === "rtl" ? "Tags: rtl-language-support\n" : ""}*/
         typography: { fluid: true },
         layout: { contentSize: "760px", wideSize: "1140px" },
       },
+      templateParts: [
+        { name: "header", title: "Header", area: "header" },
+        { name: "footer", title: "Footer", area: "footer" },
+      ],
       styles: {
         color: {
           background: "var(--wp--preset--color--surface)",
@@ -89,6 +93,8 @@ ${homePage(business, s)}
     { path: `theme/${slug}/style.css`, content: styleCss },
     { path: `theme/${slug}/theme.json`, content: themeJson + "\n" },
     { path: `theme/${slug}/templates/front-page.html`, content: frontPage + "\n" },
+    { path: `theme/${slug}/parts/header.html`, content: headerPart(business, s) + "\n" },
+    { path: `theme/${slug}/parts/footer.html`, content: footerPart(business, s) + "\n" },
   ];
   // When the business has coordinates, ship a functions.php that registers the
   // [bsb_map] shortcode and enqueues Leaflet + OpenStreetMap on demand.
@@ -96,6 +102,47 @@ ${homePage(business, s)}
     files.push({ path: `theme/${slug}/functions.php`, content: mapFunctionsPhp() });
   }
   return files;
+}
+
+/**
+ * A classic top navigation bar: site title on one side, an auto page menu + a
+ * Blog link on the other — the conventional "2015 business site" header. Dark
+ * bar, restrained, no flashy hero. Block markup for a block-theme template part.
+ */
+function headerPart(business: Business, s: Strings): string {
+  const blog = s.code === "he" ? "בלוג" : "Blog";
+  return `<!-- wp:group {"tagName":"header","align":"full","backgroundColor":"ink","layout":{"type":"constrained"}} -->
+<header class="wp-block-group alignfull has-ink-background-color has-background" style="padding-top:14px;padding-bottom:14px">
+  <!-- wp:group {"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between"}} -->
+  <div class="wp-block-group">
+    <!-- wp:site-title {"level":0,"textColor":"white"} /-->
+    <!-- wp:navigation {"textColor":"white","layout":{"type":"flex","flexWrap":"wrap"}} -->
+      <!-- wp:page-list /-->
+      <!-- wp:navigation-link {"label":"${esc(blog)}","url":"/?post_type=post","kind":"custom"} /-->
+    <!-- /wp:navigation -->
+  </div>
+  <!-- /wp:group -->
+</header>
+<!-- /wp:group -->`;
+}
+
+/** A conventional footer: business name, phone, address, copyright. */
+function footerPart(business: Business, s: Strings): string {
+  const bits = [business.name, business.phone, business.address]
+    .filter(Boolean)
+    .map(esc)
+    .join(" · ");
+  const rights = s.code === "he" ? "כל הזכויות שמורות" : "All rights reserved";
+  return `<!-- wp:group {"tagName":"footer","align":"full","backgroundColor":"ink","layout":{"type":"constrained"}} -->
+<footer class="wp-block-group alignfull has-ink-background-color has-background" style="padding-top:28px;padding-bottom:28px">
+  <!-- wp:paragraph {"align":"center","textColor":"white"} -->
+  <p class="has-text-align-center has-white-color has-text-color">${bits}</p>
+  <!-- /wp:paragraph -->
+  <!-- wp:paragraph {"align":"center","textColor":"white","fontSize":"small"} -->
+  <p class="has-text-align-center has-white-color has-text-color has-small-font-size">© ${esc(business.name)} · ${rights}</p>
+  <!-- /wp:paragraph -->
+</footer>
+<!-- /wp:group -->`;
 }
 
 function mapFunctionsPhp(): string {

@@ -56,10 +56,7 @@ function buttons(items: Array<{ label: string; href: string }>): string {
 export function heroBlock(business: Business, s: Strings): string {
   const tagline = taglineFor(business, s);
   const img = business.images[0];
-  const inner = `<!-- wp:heading {"level":1,"textColor":"white"} --><h1 class="wp-block-heading has-white-color has-text-color">${esc(business.name)}</h1><!-- /wp:heading -->
-<!-- wp:paragraph {"textColor":"white"} --><p class="has-white-color has-text-color">${esc(tagline)}</p><!-- /wp:paragraph -->
-${buttons(
-  [
+  const ctas = [
     business.phone
       ? { label: s.callUs, href: `tel:${business.phone.replace(/[^+\d]/g, "")}` }
       : null,
@@ -69,16 +66,27 @@ ${buttons(
           href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`,
         }
       : null,
-  ].filter((x): x is { label: string; href: string } => x !== null),
-)}`;
+  ].filter((x): x is { label: string; href: string } => x !== null);
 
+  // Over a real photo: a cover with white text. A photo hero is timeless.
   if (img) {
-    return `<!-- wp:cover {"url":"${esc(img)}","dimRatio":55,"minHeight":70,"minHeightUnit":"vh","align":"full"} -->
-<div class="wp-block-cover alignfull" style="min-height:70vh"><span aria-hidden="true" class="wp-block-cover__background has-background-dim-60 has-background-dim"></span><img class="wp-block-cover__image-background" src="${esc(img)}" data-object-fit="cover"/><div class="wp-block-cover__inner-container">${inner}</div></div>
+    const inner = `<!-- wp:heading {"level":1,"textColor":"white"} --><h1 class="wp-block-heading has-white-color has-text-color">${esc(business.name)}</h1><!-- /wp:heading -->
+<!-- wp:paragraph {"textColor":"white"} --><p class="has-white-color has-text-color">${esc(tagline)}</p><!-- /wp:paragraph -->
+${buttons(ctas)}`;
+    return `<!-- wp:cover {"url":"${esc(img)}","dimRatio":55,"minHeight":66,"minHeightUnit":"vh","align":"full"} -->
+<div class="wp-block-cover alignfull" style="min-height:66vh"><span aria-hidden="true" class="wp-block-cover__background has-background-dim-60 has-background-dim"></span><img class="wp-block-cover__image-background" src="${esc(img)}" data-object-fit="cover"/><div class="wp-block-cover__inner-container">${inner}</div></div>
 <!-- /wp:cover -->`;
   }
-  return `<!-- wp:group {"align":"full","backgroundColor":"accent","layout":{"type":"constrained"}} -->
-<div class="wp-block-group alignfull has-accent-background-color has-background">${inner}</div>
+
+  // No photo: a restrained, conventional masthead — normal text on the page
+  // background, a thin accent divider. No full-bleed gradient ("2015 feel").
+  return `<!-- wp:group {"layout":{"type":"constrained"}} -->
+<div class="wp-block-group" style="padding-top:56px;padding-bottom:24px">
+<!-- wp:heading {"level":1} --><h1 class="wp-block-heading">${esc(business.name)}</h1><!-- /wp:heading -->
+<!-- wp:paragraph --><p>${esc(tagline)}</p><!-- /wp:paragraph -->
+${buttons(ctas)}
+<!-- wp:separator {"className":"is-style-wide"} --><hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/><!-- /wp:separator -->
+</div>
 <!-- /wp:group -->`;
 }
 
