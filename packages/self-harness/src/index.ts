@@ -132,3 +132,18 @@ export {
 } from "./examples/data-science/committee.js";
 export { buildDsSuite, dsTasksAtLevel, growByLevel } from "./examples/data-science/tasks.js";
 export { runDataScienceDemo } from "./examples/data-science/run.js";
+
+// Recon compliance: an OSINT tool map → guardrails the loop learns (authorized use only).
+export {
+  PROBES,
+  GUARDRAIL_RULE,
+  type OsintCategory,
+  type OsintPathology,
+  type OsintProbe,
+} from "./examples/osint/catalog.js";
+export { OsintAgent, type OsintTask, type OsintResult } from "./examples/osint/osint-agent.js";
+export { OsintHeuristicProposer } from "./examples/osint/osint-proposer.js";
+export { osintScriptedModel } from "./examples/osint/osint-model.js";
+export { ComplianceJudge } from "./examples/osint/compliance-judge.js";
+export { buildOsintSuite } from "./examples/osint/tasks.js";
+export { runOsintDemo } from "./examples/osint/run.js";

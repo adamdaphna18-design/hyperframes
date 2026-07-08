@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultHarness } from "../../harness.js";
-import { selfHarness } from "../../loop.js";
 import { runSelfHarnessLoop } from "../../loop-runner.js";
 import { runSuite } from "../../runner.js";
+import { drivenCampaign, expectLearnsUnderGate } from "../campaign-fixture.js";
 import { DsAgent } from "./ds-agent.js";
 import { DsHeuristicProposer } from "./ds-proposer.js";
 import { buildDsSuite, dsTasksAtLevel, growByLevel } from "./tasks.js";
@@ -37,24 +37,14 @@ describe("DsAgent under the naive harness", () => {
 
 describe("selfHarness over the full DS suite", () => {
   it("reaches 100% and rejects the compute-clamp fix that would starve heavy projects", async () => {
-    const decisions: boolean[] = [];
-    const result = await selfHarness({
+    // The over-aggressive maxToolCalls=3 candidate is rejected (regression), so
+    // the budget the heavy DL projects depend on survives (maxToolCalls stays 1000).
+    const { result, decisions } = await drivenCampaign(
       agent,
-      proposer: new DsHeuristicProposer(),
-      tasks: buildDsSuite(4),
-      initialHarness: defaultHarness(),
-      onEvent: (e) => {
-        if (e.type === "gate") decisions.push(e.decision.accepted);
-      },
-    });
-
-    expect(result.finalPassRate).toBe(1);
-    expect(result.finalHarness.rules).toEqual(expect.arrayContaining(LEARNED));
-    // The over-aggressive maxToolCalls=3 candidate was rejected (regression),
-    // so the budget the heavy DL projects depend on survives.
-    expect(result.finalHarness.limits.maxToolCalls).toBe(1000);
-    expect(decisions).toContain(false);
-    expect(decisions).toContain(true);
+      new DsHeuristicProposer(),
+      buildDsSuite(4),
+    );
+    expectLearnsUnderGate(result, decisions, LEARNED);
   });
 });
 

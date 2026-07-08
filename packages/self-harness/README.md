@@ -311,6 +311,56 @@ the gate actually pushes back. Swap the offline `refiningDsScriptedModel()` for
 `new AnthropicModel()` (`--refine --live`) to have a live model do the
 self-correction from the same rejection feedback.
 
+## Real-world example: OSINT recon compliance
+
+`src/examples/osint/` takes a public OSINT tool map (email / username / domain /
+IP / phone / social-media tools like holehe, sherlock, Maigret, Unfurl) and runs
+the **same loop against a completely different rule domain**. The pathologies here
+are not modeling mistakes — they are the operational-security and compliance
+failures an _authorized_ recon agent must learn to avoid, each mapping to a
+minimal harness **guardrail**:
+
+| Failure cluster          | Learned guardrail            |
+| ------------------------ | ---------------------------- |
+| `out-of-scope`           | `check-authorization-scope`  |
+| `rate-limit-abuse`       | `respect-rate-limits`        |
+| `pii-exposure`           | `minimize-and-redact-pii`    |
+| `unverified-attribution` | `corroborate-across-sources` |
+| `no-provenance`          | `record-source-provenance`   |
+
+The point is that **one loop learns two utterly different rule domains** — DS
+best-practices _and_ recon guardrails — with no change to the engine: the
+framework is domain-agnostic. The Pareto tension transfers too. A naive "throttle
+every source" guardrail stops the rate-limit abuse but **regresses every
+legitimate multi-source lookup**, so the gate rejects it and forces the clean
+`respect-rate-limits` rule. Safety edits are still edits.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:osint
+```
+
+```
+  gate rejected an over-broad guardrail: it would regress 8 in-scope lookup(s)
+safe-conduct rate: 32% → 100%
+learned guardrails: record-source-provenance, check-authorization-scope, respect-rate-limits, minimize-and-redact-pii, corroborate-across-sources
+query budget preserved: maxToolCalls = 1000
+```
+
+**Compliance-Officer committee.** `demo:osint:committee` reviews every proposed
+guardrail with a two-voice panel: the `EmpiricalJudge` (does it work, no
+regression?) and a `ComplianceJudge` — a **Compliance Officer** that rewards
+edits strengthening the privacy/authorization posture and **vetoes any edit that
+raises the query budget** (more budget = more data collected on individuals). The
+two are in honest tension: the Officer _endorses_ the throttle-everything
+candidate ("collects less") that the Empiricist _vetoes_ for breaking legitimate
+lookups — so only a targeted guardrail satisfies both.
+
+> This example models compliance **outcomes** deterministically and performs no
+> real lookups. It is the inverse of the invasive tools in the source map: it
+> teaches the tradecraft/ethics rails (stay in scope, throttle, minimize PII,
+> corroborate, keep provenance) that keep recon lawful. A real drop-in wires each
+> probe to authorized tooling behind the very guardrails the loop learns here.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -375,3 +425,4 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 | `examples/public-apis/`  | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
 | `examples/bruno/`        | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
 | `examples/data-science/` | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
+| `examples/osint/`        | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |

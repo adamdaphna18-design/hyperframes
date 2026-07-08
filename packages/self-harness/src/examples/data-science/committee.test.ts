@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { defaultHarness } from "../../harness.js";
-import { selfHarness } from "../../loop.js";
 import { runSuite } from "../../runner.js";
 import type { HarnessPatch } from "../../types.js";
+import { drivenCampaign } from "../campaign-fixture.js";
 import {
   ArchitectJudge,
   CommitteeProposer,
@@ -73,12 +73,7 @@ describe("CommitteeProposer", () => {
     const tasks = buildDsSuite(4);
     const committee = new CommitteeProposer({ inner: new DsHeuristicProposer(), agent, tasks });
 
-    const result = await selfHarness({
-      agent,
-      proposer: committee,
-      tasks,
-      initialHarness: defaultHarness(),
-    });
+    const { result } = await drivenCampaign(agent, committee, tasks);
 
     expect(result.finalPassRate).toBe(1);
     // The aggressive runaway-training clamp was reviewed and vetoed.
