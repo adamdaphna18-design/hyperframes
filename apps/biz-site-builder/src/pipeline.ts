@@ -211,6 +211,7 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
               baseTheme: opts.wpBaseTheme,
               livePlugins: opts.livePlugins,
               analytics: opts.analytics,
+              blog: opts.blog,
               fetchImpl: opts.fetchImpl,
             });
             const dir = join(sitesDir, bundle.slug);

@@ -243,6 +243,7 @@ Options:
       --plausible <domain>  Inject the Plausible analytics snippet
       --quotes          Generate a price quote (lead → quote) per site-less business
       --include-weak    Also build redesigns for weak/outdated existing sites (needs --verify-live)
+      --blog            Generate a per-trade SEO blog (WordPress posts in the WXR; static pages for --target static)
       --chat-widget <src>   Embed an AI chat widget (embed script URL) into every built site
       --chat-embed-id <id>  Agent/embed id for the chat widget (data-embed-id)
   -h, --help            Show this help

@@ -2,6 +2,7 @@ import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { bestReview, esc, stars, taglineFor } from "../generate/util.ts";
 import { servicesFor } from "../generate/services.ts";
+import type { Draft } from "../generate/blog.ts";
 
 /**
  * Gutenberg block markup builders. The same markup seeds the WordPress WXR
@@ -15,6 +16,30 @@ export function heading(text: string, level = 2): string {
 
 export function paragraph(text: string): string {
   return `<!-- wp:paragraph --><p>${esc(text)}</p><!-- /wp:paragraph -->`;
+}
+
+export function listBlock(items: string[]): string {
+  if (!items.length) return "";
+  return `<!-- wp:list -->\n<ul class="wp-block-list">${items
+    .map((i) => `<!-- wp:list-item --><li>${esc(i)}</li><!-- /wp:list-item -->`)
+    .join("")}</ul>\n<!-- /wp:list -->`;
+}
+
+/** Render a blog-article draft as Gutenberg block markup for a WordPress post. */
+export function blogPostBlocks(draft: Draft, s: Strings): string {
+  const parts = [paragraph(draft.intro)];
+  for (const sec of draft.sections) {
+    parts.push(heading(sec.h2));
+    for (const p of sec.paras) parts.push(paragraph(p));
+    if (sec.list?.length) parts.push(listBlock(sec.list));
+  }
+  if (draft.faq?.length) {
+    parts.push(heading(s.code === "he" ? "שאלות נפוצות" : "FAQ"));
+    for (const f of draft.faq) {
+      parts.push(heading(f.q, 3), paragraph(f.a));
+    }
+  }
+  return parts.join("\n\n");
 }
 
 export function button(label: string, href: string): string {

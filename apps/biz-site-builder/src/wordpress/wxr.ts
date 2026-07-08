@@ -1,7 +1,8 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { taglineFor } from "../generate/util.ts";
-import { aboutPage, contactPage, homePage, reviewsPage } from "./blocks.ts";
+import { aboutPage, blogPostBlocks, contactPage, homePage, reviewsPage } from "./blocks.ts";
+import { blogDrafts } from "../generate/blog.ts";
 import { cdata, xmlEsc } from "./xml.ts";
 
 /**
@@ -68,7 +69,41 @@ ${comments}
   </item>`;
 }
 
-export function generateWxr(business: Business, s: Strings): string {
+/** A blog post `<item>` (post_type=post), body as Gutenberg blocks. */
+function postItemXml(
+  post: { id: number; title: string; slug: string; content: string; excerpt: string },
+  base: string,
+): string {
+  return `  <item>
+    <title>${xmlEsc(post.title)}</title>
+    <link>${xmlEsc(`${base}/${post.slug}/`)}</link>
+    <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+    <dc:creator>${cdata("admin")}</dc:creator>
+    <guid isPermaLink="false">${xmlEsc(`${base}/?p=${post.id}`)}</guid>
+    <description></description>
+    <content:encoded>${cdata(post.content)}</content:encoded>
+    <excerpt:encoded>${cdata(post.excerpt)}</excerpt:encoded>
+    <wp:post_id>${post.id}</wp:post_id>
+    <wp:post_date>${cdata(FIXED_DATE)}</wp:post_date>
+    <wp:post_date_gmt>${cdata(FIXED_DATE_GMT)}</wp:post_date_gmt>
+    <wp:comment_status>${cdata("open")}</wp:comment_status>
+    <wp:ping_status>${cdata("open")}</wp:ping_status>
+    <wp:post_name>${cdata(post.slug)}</wp:post_name>
+    <wp:status>${cdata("publish")}</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>${cdata("post")}</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>`;
+}
+
+export interface WxrOptions {
+  /** Also import the per-trade SEO blog as WordPress posts. */
+  blog?: boolean;
+}
+
+export function generateWxr(business: Business, s: Strings, opts: WxrOptions = {}): string {
   const base = "http://localhost";
   const pages: PageSpec[] = [
     { id: 10, title: business.name, slug: "home", content: homePage(business, s), menuOrder: 0 },
@@ -84,9 +119,26 @@ export function generateWxr(business: Business, s: Strings): string {
   ];
 
   const reviewComments = business.reviews.map((r, i) => commentXml(r, 100 + i)).join("\n");
-  const items = pages
+  let items = pages
     .map((page) => itemXml(page, base, page.slug === "reviews" ? reviewComments : ""))
     .join("\n");
+
+  // The per-trade SEO blog, imported as real WordPress posts.
+  if (opts.blog) {
+    const posts = blogDrafts(business, s).map((d, i) =>
+      postItemXml(
+        {
+          id: 20 + i,
+          title: d.title,
+          slug: d.slug,
+          content: blogPostBlocks(d, s),
+          excerpt: d.description,
+        },
+        base,
+      ),
+    );
+    items += "\n" + posts.join("\n");
+  }
 
   const language = s.code === "he" ? "he-IL" : "en-US";
 

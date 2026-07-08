@@ -35,6 +35,8 @@ export interface BundleOptions {
   livePlugins?: boolean;
   /** Analytics providers (GA4 / Plausible) for a wp_head mu-plugin. */
   analytics?: AnalyticsOptions;
+  /** Import the per-trade SEO blog as WordPress posts. */
+  blog?: boolean;
   fetchImpl?: typeof fetch;
 }
 
@@ -63,7 +65,7 @@ export async function generateWordPressBundle(
   const tSlug = themeSlug(business);
 
   const files: BundleFile[] = [
-    { path: "content.wxr.xml", content: generateWxr(business, s) },
+    { path: "content.wxr.xml", content: generateWxr(business, s, { blog: opts.blog }) },
     ...theme,
     {
       path: "provision.sh",

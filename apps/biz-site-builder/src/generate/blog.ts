@@ -29,12 +29,12 @@ export interface BlogPost {
   html: string;
 }
 
-interface Section {
+export interface Section {
   h2: string;
   paras: string[];
   list?: string[];
 }
-interface Draft {
+export interface Draft {
   slug: string;
   title: string;
   description: string;
@@ -49,7 +49,7 @@ function slugify(base: string, i: number): string {
 }
 
 /** Build the article drafts (content only) for a business's trade. */
-function drafts(business: Business, s: Strings): Draft[] {
+export function blogDrafts(business: Business, s: Strings = stringsFor("en")): Draft[] {
   const he = s.code === "he";
   const t = (en: string, hebrew: string) => (he ? hebrew : en);
   const profile = getIndustryProfile(business, s);
@@ -391,7 +391,7 @@ export function generateBlog(
   opts: BlogOptions = {},
 ): { index: string; posts: BlogPost[] } {
   const home = opts.homeHref ?? "../index.html";
-  const ds = drafts(business, s);
+  const ds = blogDrafts(business, s);
   const posts: BlogPost[] = ds.map((d) => ({
     slug: d.slug,
     title: d.title,
