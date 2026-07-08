@@ -3,6 +3,7 @@ import { defaultHarness } from "../../harness.js";
 import { runSuite } from "../../runner.js";
 import { drivenCampaign, expectLearnsUnderGate } from "../campaign-fixture.js";
 import { CompanyBrain } from "./brain.js";
+import { buildDemoBrain } from "./fixture.js";
 import { ingest } from "./ingest.js";
 import { Orchestrator } from "./orchestrator.js";
 import { CompanyAgent } from "./os-agent.js";
@@ -12,13 +13,6 @@ import { SEED_SOURCES } from "./sources.js";
 import { buildCompanySuite } from "./tasks.js";
 import { HARMFUL_SEO_RULE, PLAYBOOK_FOR_VERTICAL, VERTICALS } from "./verticals.js";
 import { seedWarehouse } from "./warehouse.js";
-
-function freshBrain(): CompanyBrain {
-  const warehouse = seedWarehouse(
-    VERTICALS.map((v) => ({ metric: v.metric, value: v.baselineMetric })),
-  );
-  return new CompanyBrain(ingest(SEED_SOURCES), warehouse);
-}
 
 const learnedPlaybooks = Object.values(PLAYBOOK_FOR_VERTICAL).filter(
   (r): r is string => typeof r === "string",
@@ -30,7 +24,7 @@ describe("ingest → brain", () => {
     expect(pages.length).toBe(SEED_SOURCES.length);
     expect(pages.some((p) => p.links.length > 0)).toBe(true);
 
-    const brain = freshBrain();
+    const brain = buildDemoBrain();
     expect(brain.search("keywords intent traffic")[0]?.tags).toContain("seo");
     expect(brain.context("cro").length).toBeGreaterThan(0);
   });
@@ -39,7 +33,7 @@ describe("ingest → brain", () => {
 describe("CompanyAgent under the naive harness", () => {
   it("ships only the already-performing vertical; the rest await their playbook", async () => {
     const suite = await runSuite(
-      new CompanyAgent(freshBrain()),
+      new CompanyAgent(buildDemoBrain()),
       defaultHarness(),
       buildCompanySuite(),
     );
@@ -63,7 +57,7 @@ describe("CompanyAgent under the naive harness", () => {
 describe("operating system: Self-Harness over the verticals", () => {
   it("reaches 100% and rejects the SEO edit that would wreck brand voice", async () => {
     const { result, decisions } = await drivenCampaign(
-      new CompanyAgent(freshBrain()),
+      new CompanyAgent(buildDemoBrain()),
       new CompanyPlaybookProposer(),
       buildCompanySuite(),
     );
@@ -75,7 +69,7 @@ describe("operating system: Self-Harness over the verticals", () => {
 
 describe("orchestrator write-back: the brain compounds", () => {
   it("ships every vertical and files playbooks + metrics back into the brain", async () => {
-    const brain = freshBrain();
+    const brain = buildDemoBrain();
     const agent = new CompanyAgent(brain);
     const { result } = await drivenCampaign(
       agent,

@@ -39,6 +39,8 @@ export class CompanyBrain {
   }
 
   /** Semantic search across the whole brain. */
+  // Called on the factory-built brain (demo + tests), which fallow can't attribute.
+  // fallow-ignore-next-line unused-class-member
   search(query: string): BrainPage[] {
     return this.retriever.rank(query, this.wiki);
   }
@@ -54,6 +56,8 @@ export class CompanyBrain {
     this.wiki = crossLink([...without, page]);
   }
 
+  // Called on the factory-built brain (demo + tests), which fallow can't attribute.
+  // fallow-ignore-next-line unused-class-member
   pages(): BrainPage[] {
     return this.wiki;
   }

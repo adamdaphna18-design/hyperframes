@@ -1,14 +1,11 @@
 import { defaultHarness } from "../../harness.js";
 import { selfHarness } from "../../loop.js";
-import { CompanyBrain } from "./brain.js";
-import { ingest } from "./ingest.js";
+import { buildDemoBrain } from "./fixture.js";
 import { Orchestrator } from "./orchestrator.js";
 import { CompanyAgent } from "./os-agent.js";
 import { CompanyPlaybookProposer } from "./os-proposer.js";
-import { SEED_SOURCES } from "./sources.js";
 import { buildCompanySuite } from "./tasks.js";
 import { VERTICALS } from "./verticals.js";
-import { seedWarehouse } from "./warehouse.js";
 
 /**
  * The full "AI-ready company" pipeline, end to end and offline:
@@ -25,11 +22,8 @@ export async function runCompanyBrainDemo(): Promise<void> {
   const log = (line: string) => process.stdout.write(line + "\n");
 
   // Layer 1+2 → the brain: ingest sources, attach the warehouse.
-  const pages = ingest(SEED_SOURCES);
-  const warehouse = seedWarehouse(
-    VERTICALS.map((v) => ({ metric: v.metric, value: v.baselineMetric })),
-  );
-  const brain = new CompanyBrain(pages, warehouse);
+  const brain = buildDemoBrain();
+  const pages = brain.pages();
   const links = pages.reduce((n, p) => n + p.links.length, 0);
   log("How to make your company AI-ready — one brain, agents on top, results flow back\n");
   log(`INGEST: ${pages.length} sources → brain (${links} cross-links)`);
@@ -57,7 +51,7 @@ export async function runCompanyBrainDemo(): Promise<void> {
   log(`  learned playbooks: ${result.finalHarness.rules.join(", ")}`);
 
   // Write-back: orchestrator ships, you approve, results compound into the brain.
-  const before = warehouse.snapshot();
+  const before = brain.warehouse.snapshot();
   const orchestrator = new Orchestrator(brain, agent);
   const deliverables = await orchestrator.run(result.finalHarness);
   log("\nYOU review + approve; approved deliverables file back into the brain:");
@@ -70,7 +64,7 @@ export async function runCompanyBrainDemo(): Promise<void> {
     `\nBRAIN COMPOUNDED: ${pages.length} → ${brain.pages().length} pages (playbooks written back)`,
   );
   log(`warehouse: ${fmt(before)}`);
-  log(`        →  ${fmt(warehouse.snapshot())}`);
+  log(`        →  ${fmt(brain.warehouse.snapshot())}`);
 }
 
 function pct(x: number): string {
