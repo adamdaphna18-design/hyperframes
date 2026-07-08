@@ -191,11 +191,13 @@ Bruno collection on disk to tune a harness against your own requests.
 
 ## Real-world example: data-science projects
 
-`src/examples/data-science/` turns
+`src/examples/data-science/` turns a curated catalog of 31 beginner/portfolio
+data-science projects (drawn from
 [tkarim45/Beginner-Data-Science-Projects](https://github.com/tkarim45/Beginner-Data-Science-Projects)
-(41 projects across four difficulty levels) into a task suite. Each project is a
-task — the objective is the prompt, a **metric threshold is the verifier** — and
-the recurring DS pitfalls become the harness rules the loop learns:
+and similar corpora, across four difficulty levels) into a task suite. Each
+project is a task — the objective is the prompt, a **metric threshold is the
+verifier** — and the recurring DS pitfalls become the harness rules the loop
+learns:
 
 | Failure cluster    | Learned harness rule           |
 | ------------------ | ------------------------------ |
@@ -217,10 +219,10 @@ bun run --filter @hyperframes/self-harness demo:ds
 ```
 
 ```
-iteration 1: +0 tasks, pass 20% → 100%, learned [fit-transforms-on-train-only, seed-everything, handle-missing-values]
-iteration 2: +4 tasks, pass 89% → 100%, learned [handle-class-imbalance]
-iteration 3: +3 tasks, pass 92% → 100%, learned [use-early-stopping]
-iteration 4: +2 tasks, pass 100% → 100%, learned [-]
+iteration 1: +0 tasks, pass 27% → 100%, learned [fit-transforms-on-train-only, seed-everything, handle-missing-values]
+iteration 2: +9 tasks, pass 85% → 100%, learned [handle-class-imbalance]
+iteration 3: +6 tasks, pass 92% → 100%, learned [use-early-stopping]
+iteration 4: +5 tasks, pass 100% → 100%, learned [-]   ← Level 4 passes on arrival: the rules generalize
 iteration 5: converged → 5-rule "DS-agent" harness fingerprint
 ```
 
@@ -277,10 +279,10 @@ bun run --filter @hyperframes/self-harness demo:ds:committee
 
 ```
 ## ds-patch-5 (runaway-training) — VETOED, avg 4.0
-- SR-Scientist (empiricist): 0/10 · VETO — regresses 12 passing project(s)
+- SR-Scientist (empiricist): 0/10 · VETO — regresses 26 passing project(s)
 - R&D-Agent (architect):     4/10 · VETO — clamps the compute budget, won't scale
 - DR-Venus (economist):      8/10 — caps compute — cheap to run          ← the Pareto tension
-## ds-patch-6 (runaway-training) — ACCEPTED, avg 8.0  (the clean early-stopping rule)
+## ds-patch-6 (runaway-training) — ACCEPTED, avg 8.7  (the clean early-stopping rule)
 ```
 
 **Refining path.** The committee _rejects_ a bad edit; `RefiningModelProposer`
@@ -298,7 +300,7 @@ bun run --filter @hyperframes/self-harness demo:ds:refine
 ```
 ## runaway-training · attempt 1 — REJECTED
 - proposed: [{"op":"setLimit","key":"maxToolCalls","value":3}]
-- gate: rejected: regressed 12 passing task(s): face-recognition, …
+- gate: rejected: regressed 26 passing task(s): boston-house-prices, …
 ## runaway-training · attempt 2 — ACCEPTED          ← the model self-corrected
 - proposed: [{"op":"addRule","text":"use-early-stopping"}]
 - gate: accepted: +1 passing, 0 regressions
@@ -372,4 +374,4 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 | `demo/`                  | The runnable pathology suite + `runDemo`                                     |
 | `examples/public-apis/`  | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
 | `examples/bruno/`        | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
-| `examples/data-science/` | 41 beginner DS projects → level-graded suite; DS pitfalls → harness rules    |
+| `examples/data-science/` | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
