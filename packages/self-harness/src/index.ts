@@ -96,3 +96,18 @@ export {
   demoCollectionDir,
 } from "./examples/bruno/collection.js";
 export { runBrunoDemo } from "./examples/bruno/run.js";
+
+// Data-science task suite (tkarim45/Beginner-Data-Science-Projects) → tasks.
+export {
+  PROJECTS,
+  PATHOLOGY_RULE,
+  projectsAtLevel,
+  projectsUpToLevel,
+  type DsProject,
+  type DsLevel,
+  type DsPathology,
+} from "./examples/data-science/projects.js";
+export { DsAgent, type DsTask, type DsResult } from "./examples/data-science/ds-agent.js";
+export { DsHeuristicProposer } from "./examples/data-science/ds-proposer.js";
+export { buildDsSuite, dsTasksAtLevel } from "./examples/data-science/tasks.js";
+export { runDataScienceDemo } from "./examples/data-science/run.js";

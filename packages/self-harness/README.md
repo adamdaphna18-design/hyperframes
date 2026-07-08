@@ -189,6 +189,44 @@ The `HttpAgent` gains an `envelope` mode so the response's real HTTP status
 reaches the assertions (`res.status: eq 200`). Point `loadBrunoCollection` at any
 Bruno collection on disk to tune a harness against your own requests.
 
+## Real-world example: data-science projects
+
+`src/examples/data-science/` turns
+[tkarim45/Beginner-Data-Science-Projects](https://github.com/tkarim45/Beginner-Data-Science-Projects)
+(41 projects across four difficulty levels) into a task suite. Each project is a
+task — the objective is the prompt, a **metric threshold is the verifier** — and
+the recurring DS pitfalls become the harness rules the loop learns:
+
+| Failure cluster    | Learned harness rule           |
+| ------------------ | ------------------------------ |
+| `data-leakage`     | `fit-transforms-on-train-only` |
+| `non-determinism`  | `seed-everything`              |
+| `unhandled-nan`    | `handle-missing-values`        |
+| `class-imbalance`  | `handle-class-imbalance`       |
+| `runaway-training` | `use-early-stopping`           |
+
+It uses the outer `loop-runner` to grow the suite one difficulty tier at a time
+— Level 1 → 4. Rules learned on Level 1 **transfer**: harder projects that share
+a pitfall pass the moment they're added, and only genuinely new pathologies cost
+a new rule. The heavy deep-learning projects (which legitimately need a large
+compute budget) are what force the gate to reject the runaway-training fix that
+would clamp `maxToolCalls`.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ds
+```
+
+```
+iteration 1: +0 tasks, pass 20% → 100%, learned [fit-transforms-on-train-only, seed-everything, handle-missing-values]
+iteration 2: +4 tasks, pass 89% → 100%, learned [handle-class-imbalance]
+iteration 3: +3 tasks, pass 92% → 100%, learned [use-early-stopping]
+iteration 4: +2 tasks, pass 100% → 100%, learned [-]
+iteration 5: converged → 5-rule "DS-agent" harness fingerprint
+```
+
+The behavior is modeled deterministically so it runs offline; the same suite
+drives a real notebook-executing agent where Python + Jupyter are available.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -237,17 +275,18 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                    | Responsibility                                                               |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `types.ts`              | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
-| `harness.ts`            | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
-| `runner.ts`             | Run an agent over a task suite                                               |
-| `cluster.ts`            | Group failures into recurring patterns                                       |
-| `proposer.ts`           | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
-| `gate.ts`               | The regression acceptance criterion                                          |
-| `loop.ts`               | The orchestrator (`selfHarness`)                                             |
-| `agents/`               | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
-| `models/`               | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
-| `demo/`                 | The runnable pathology suite + `runDemo`                                     |
-| `examples/public-apis/` | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
-| `examples/bruno/`       | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
+| File                     | Responsibility                                                               |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `types.ts`               | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
+| `harness.ts`             | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
+| `runner.ts`              | Run an agent over a task suite                                               |
+| `cluster.ts`             | Group failures into recurring patterns                                       |
+| `proposer.ts`            | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
+| `gate.ts`                | The regression acceptance criterion                                          |
+| `loop.ts`                | The orchestrator (`selfHarness`)                                             |
+| `agents/`                | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
+| `models/`                | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
+| `demo/`                  | The runnable pathology suite + `runDemo`                                     |
+| `examples/public-apis/`  | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
+| `examples/bruno/`        | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
+| `examples/data-science/` | 41 beginner DS projects → level-graded suite; DS pitfalls → harness rules    |
