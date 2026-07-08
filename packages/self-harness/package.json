@@ -38,6 +38,7 @@
     "demo:apis:model": "tsx src/examples/public-apis/run.ts --model",
     "demo:bruno": "tsx src/examples/bruno/run.ts",
     "demo:ds": "tsx src/examples/data-science/run.ts",
+    "demo:ds:agentic": "tsx src/examples/data-science/run.ts --agentic",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

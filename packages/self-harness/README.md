@@ -227,6 +227,21 @@ iteration 5: converged → 5-rule "DS-agent" harness fingerprint
 The behavior is modeled deterministically so it runs offline; the same suite
 drives a real notebook-executing agent where Python + Jupyter are available.
 
+**Agentic agent path.** `AgenticDsAgent` (inspired by
+[K-Dense-AI/agentic-data-scientist](https://github.com/K-Dense-AI/agentic-data-scientist))
+is a real, staged, **model-governed** agent: it walks the DS workflow
+(`load → clean → feature → resample → split → train → evaluate`) and, at the
+stage where a pitfall lives, asks a model whether it will apply the relevant
+practice — reading the harness's rules from its own system prompt. So the
+harness literally steers a model-driven pipeline, and the same failure signals
+flow into the loop. Offline it runs on `RuleAwareModel` (a deterministic
+stand-in that follows the rendered rules); drop in `AnthropicModel` for a live
+agent.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ds:agentic
+```
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.

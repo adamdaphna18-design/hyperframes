@@ -11,6 +11,15 @@ export function dsTasksAtLevel(level: DsLevel): DsTask[] {
   return projectsAtLevel(level).map(toTask);
 }
 
+/**
+ * A `growSuite` callback that adds the next difficulty level each iteration:
+ * iteration 1 runs Level 1 (the initial tasks), iteration N adds Level N.
+ */
+export function growByLevel(iteration: number): DsTask[] {
+  const level = iteration as DsLevel;
+  return level >= 2 && level <= 4 ? dsTasksAtLevel(level) : [];
+}
+
 function toTask(project: DsProject): DsTask {
   return {
     id: project.id,

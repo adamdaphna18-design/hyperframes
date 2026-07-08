@@ -1,9 +1,10 @@
 import { defaultHarness } from "../../harness.js";
 import { runSelfHarnessLoop } from "../../loop-runner.js";
+import type { Agent } from "../../types.js";
+import { AgenticDsAgent, RuleAwareModel } from "./agentic-agent.js";
 import { DsAgent } from "./ds-agent.js";
 import { DsHeuristicProposer } from "./ds-proposer.js";
-import { dsTasksAtLevel } from "./tasks.js";
-import type { DsLevel } from "./projects.js";
+import { dsTasksAtLevel, growByLevel } from "./tasks.js";
 
 /**
  * Drives the outer Self-Harness loop across the four difficulty levels of the
@@ -13,21 +14,20 @@ import type { DsLevel } from "./projects.js";
  * rules transfer), while new pathologies trigger new rules. It converges once a
  * level adds nothing left to learn, and prints the resulting `progress.md`.
  */
-export async function runDataScienceDemo(): Promise<void> {
+export async function runDataScienceDemo(options: { agentic?: boolean } = {}): Promise<void> {
   const log = (line: string) => process.stdout.write(line + "\n");
-  log("Beginner-Data-Science-Projects → Self-Harness suite (grows Level 1 → 4)\n");
+  const agent: Agent = options.agentic ? new AgenticDsAgent(new RuleAwareModel()) : new DsAgent();
+  log(
+    `Beginner-Data-Science-Projects → Self-Harness suite (grows Level 1 → 4)` +
+      (options.agentic ? " — agentic (model-governed) agent\n" : "\n"),
+  );
 
   const result = await runSelfHarnessLoop({
-    agent: new DsAgent(),
+    agent,
     proposer: new DsHeuristicProposer(),
     initialHarness: defaultHarness(),
     initialTasks: dsTasksAtLevel(1),
-    growSuite: (iteration) => {
-      // Iteration 1 runs Level 1 (the initial tasks); each later iteration adds
-      // the next level, so the suite grows one difficulty tier at a time.
-      const level = iteration as DsLevel;
-      return level >= 2 && level <= 4 ? dsTasksAtLevel(level) : [];
-    },
+    growSuite: growByLevel,
     maxIterations: 8,
     convergenceRounds: 2,
     onIteration: (it) =>
@@ -45,9 +45,9 @@ function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
-// Executed directly (bun run src/examples/data-science/run.ts).
+// Executed directly (bun run src/examples/data-science/run.ts [--agentic]).
 if ((import.meta as { main?: boolean }).main) {
-  runDataScienceDemo().catch((err: unknown) => {
+  runDataScienceDemo({ agentic: process.argv.includes("--agentic") }).catch((err: unknown) => {
     console.error(err);
     process.exitCode = 1;
   });

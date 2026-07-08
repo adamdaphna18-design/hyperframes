@@ -108,6 +108,7 @@ export {
   type DsPathology,
 } from "./examples/data-science/projects.js";
 export { DsAgent, type DsTask, type DsResult } from "./examples/data-science/ds-agent.js";
+export { AgenticDsAgent, RuleAwareModel } from "./examples/data-science/agentic-agent.js";
 export { DsHeuristicProposer } from "./examples/data-science/ds-proposer.js";
-export { buildDsSuite, dsTasksAtLevel } from "./examples/data-science/tasks.js";
+export { buildDsSuite, dsTasksAtLevel, growByLevel } from "./examples/data-science/tasks.js";
 export { runDataScienceDemo } from "./examples/data-science/run.js";

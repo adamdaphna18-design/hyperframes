@@ -5,9 +5,8 @@ import { runSelfHarnessLoop } from "../../loop-runner.js";
 import { runSuite } from "../../runner.js";
 import { DsAgent } from "./ds-agent.js";
 import { DsHeuristicProposer } from "./ds-proposer.js";
-import { buildDsSuite, dsTasksAtLevel } from "./tasks.js";
+import { buildDsSuite, dsTasksAtLevel, growByLevel } from "./tasks.js";
 import { runDataScienceDemo } from "./run.js";
-import type { DsLevel } from "./projects.js";
 
 const agent = new DsAgent();
 
@@ -66,10 +65,7 @@ describe("outer loop growing through the four levels", () => {
       proposer: new DsHeuristicProposer(),
       initialHarness: defaultHarness(),
       initialTasks: dsTasksAtLevel(1),
-      growSuite: (iteration) => {
-        const level = iteration as DsLevel;
-        return level >= 2 && level <= 4 ? dsTasksAtLevel(level) : [];
-      },
+      growSuite: growByLevel,
       maxIterations: 8,
       convergenceRounds: 2,
     });
