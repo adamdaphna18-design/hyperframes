@@ -20,6 +20,12 @@ export { passingIds, runSuite, runTask } from "./runner.js";
 export { regressionGate, type GateDecision } from "./gate.js";
 export { HeuristicProposer, ModelProposer, parseOps } from "./proposer.js";
 export {
+  RefiningModelProposer,
+  renderRefinements,
+  type RefiningConfig,
+  type RefineAttempt,
+} from "./refining-proposer.js";
+export {
   selfHarness,
   type LoopEvent,
   type RoundLog,
@@ -110,7 +116,7 @@ export {
 export { DsAgent, type DsTask, type DsResult } from "./examples/data-science/ds-agent.js";
 export { AgenticDsAgent, RuleAwareModel } from "./examples/data-science/agentic-agent.js";
 export { DsHeuristicProposer } from "./examples/data-science/ds-proposer.js";
-export { dsScriptedModel } from "./examples/data-science/ds-model.js";
+export { dsScriptedModel, refiningDsScriptedModel } from "./examples/data-science/ds-model.js";
 export {
   CommitteeProposer,
   EmpiricalJudge,

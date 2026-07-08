@@ -283,6 +283,32 @@ bun run --filter @hyperframes/self-harness demo:ds:committee
 ## ds-patch-6 (runaway-training) — ACCEPTED, avg 8.0  (the clean early-stopping rule)
 ```
 
+**Refining path.** The committee _rejects_ a bad edit; `RefiningModelProposer`
+makes the model _learn_ from the rejection. It is the feedback edge the plain
+`ModelProposer` lacks: a rejected candidate no longer just dies. The proposer
+treats the regression gate as an **oracle** — it proposes, gate-checks the
+candidate itself, and on rejection hands the model the exact reason (which
+passing tasks it broke) and asks for a tighter edit, up to `maxAttempts` rounds.
+The loop's own gate still has the final say on what is committed.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ds:refine
+```
+
+```
+## runaway-training · attempt 1 — REJECTED
+- proposed: [{"op":"setLimit","key":"maxToolCalls","value":3}]
+- gate: rejected: regressed 12 passing task(s): face-recognition, …
+## runaway-training · attempt 2 — ACCEPTED          ← the model self-corrected
+- proposed: [{"op":"addRule","text":"use-early-stopping"}]
+- gate: accepted: +1 passing, 0 regressions
+```
+
+Every other pattern is fixed on the first attempt — refinement only kicks in when
+the gate actually pushes back. Swap the offline `refiningDsScriptedModel()` for
+`new AnthropicModel()` (`--refine --live`) to have a live model do the
+self-correction from the same rejection feedback.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -338,6 +364,7 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 | `runner.ts`              | Run an agent over a task suite                                               |
 | `cluster.ts`             | Group failures into recurring patterns                                       |
 | `proposer.ts`            | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
+| `refining-proposer.ts`   | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
 | `gate.ts`                | The regression acceptance criterion                                          |
 | `loop.ts`                | The orchestrator (`selfHarness`)                                             |
 | `agents/`                | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |

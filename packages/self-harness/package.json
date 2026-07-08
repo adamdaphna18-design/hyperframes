@@ -41,6 +41,7 @@
     "demo:ds:agentic": "tsx src/examples/data-science/run.ts --agentic",
     "demo:ds:model": "tsx src/examples/data-science/run.ts --model",
     "demo:ds:committee": "tsx src/examples/data-science/run.ts --committee",
+    "demo:ds:refine": "tsx src/examples/data-science/run.ts --refine",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

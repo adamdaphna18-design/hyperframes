@@ -23,3 +23,32 @@ export function dsScriptedModel(): ScriptedModel {
     { match: '"runaway-training"', reply: addRule("runaway-training") },
   ]);
 }
+
+/**
+ * A deterministic model for the *refining* proposer. Unlike {@link dsScriptedModel},
+ * this one deliberately reaches for the blunt fix first: for "runaway-training"
+ * its opening move is the over-aggressive compute clamp — which the regression
+ * gate rejects for starving the heavy projects. Shown that rejection (the prompt
+ * then contains "REJECTED"), it switches to the clean `use-early-stopping` rule.
+ * That reject→refine step is exactly what {@link RefiningModelProposer} exists to
+ * capture; every other pattern is fixed correctly on the first try.
+ *
+ * Swap this for `new AnthropicModel()` to have a live model do the self-correction.
+ */
+export function refiningDsScriptedModel(): ScriptedModel {
+  const addRule = (pathology: keyof typeof PATHOLOGY_RULE) =>
+    JSON.stringify([{ op: "addRule", text: PATHOLOGY_RULE[pathology] }]);
+  return new ScriptedModel([
+    // A rejected attempt (only the runaway-training clamp is rejected) → the clean rule.
+    { match: "REJECTED", reply: addRule("runaway-training") },
+    // First pass at runaway-training: reach for the blunt compute clamp.
+    {
+      match: '"runaway-training"',
+      reply: JSON.stringify([{ op: "setLimit", key: "maxToolCalls", value: 3 }]),
+    },
+    { match: '"data-leakage"', reply: addRule("data-leakage") },
+    { match: '"non-determinism"', reply: addRule("non-determinism") },
+    { match: '"unhandled-nan"', reply: addRule("unhandled-nan") },
+    { match: '"class-imbalance"', reply: addRule("class-imbalance") },
+  ]);
+}
