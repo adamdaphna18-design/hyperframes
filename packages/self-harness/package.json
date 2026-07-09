@@ -47,6 +47,7 @@
     "demo:osint:committee": "tsx src/examples/osint/run.ts --committee",
     "demo:brain": "tsx src/examples/company-brain/run.ts",
     "demo:router": "tsx src/examples/router/run.ts",
+    "demo:router:real": "tsx src/examples/router/real-eval.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

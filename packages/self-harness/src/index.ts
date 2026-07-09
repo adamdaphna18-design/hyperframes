@@ -193,3 +193,14 @@ export {
 export { RouterProposer } from "./examples/router/router-proposer.js";
 export { buildRouterSuite } from "./examples/router/tasks.js";
 export { runRouterDemo } from "./examples/router/run.js";
+export {
+  REAL_PROBLEMS,
+  type RealProblem,
+  type RealDomain,
+} from "./examples/router/real-problems.js";
+export { KeywordClassifier, type DomainClassifier } from "./examples/router/classifier.js";
+export {
+  evaluateRealRouting,
+  runRealEvalDemo,
+  type RealEvalResult,
+} from "./examples/router/real-eval.js";
