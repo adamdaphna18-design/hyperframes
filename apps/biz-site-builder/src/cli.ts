@@ -10,6 +10,8 @@ import { recommendAiServices } from "./generate/opportunities.ts";
 import { estimateRoi } from "./generate/roi.ts";
 import { generateAgencyPage } from "./generate/agency.ts";
 import { carePlanHtml } from "./generate/careplan.ts";
+import { localSeoHtml } from "./generate/localseo.ts";
+import { scrapeBusiness } from "./sources/web.ts";
 import { outputSlug } from "./generate/util.ts";
 import type { Business } from "./types.ts";
 import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
@@ -208,6 +210,9 @@ Usage:
   biz-site-builder careplan --brand "Client" [--category X] [--out careplan.html]
        Write a recurring care-plan proposal (Care/Grow/Scale tiers) — the retention
        artifact that turns a one-time build into monthly revenue (higher LTV → CAC pays back).
+  biz-site-builder localseo --url <url> [--category X] [--out roadmap.html] [--brand X]
+       Cross-reference a site's signals (on-page SEO, schema, NAP, reviews, tech) into a
+       prioritized Local SEO roadmap — quick wins first, then by impact × effort. No guessing.
 
 Sources (repeatable, merged in order — later sources enrich earlier ones):
   csv:./businesses.csv              Ingest a CSV export
@@ -497,6 +502,34 @@ async function runAgency(args: ParsedArgs): Promise<void> {
   process.stdout.write(`✓ ${out} — agency landing page for "${name}" (${s.code}).\n`);
 }
 
+/** `localseo --url <url>`: cross-reference signals into a prioritized Local SEO roadmap. */
+async function runLocalSeo(args: ParsedArgs): Promise<void> {
+  const s = stringsFor(auditLocale(args));
+  if (!args.url) {
+    process.stderr.write("Error: localseo needs --url <url>.\n");
+    process.exitCode = 1;
+    return;
+  }
+  const src = new WebSource({ urls: [args.url] });
+  const page = await src.fetchPage(args.url);
+  if (!page || page.status >= 400) {
+    process.stderr.write(
+      `Error: could not fetch ${args.url} (status ${page?.status ?? "unreachable"}).\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const business = scrapeBusiness(page);
+  if (args.category) business.category = args.category;
+  const out = args.out === ".out" ? "localseo.html" : args.out;
+  await writeFile(
+    out,
+    localSeoHtml({ business, html: page.html, url: page.finalUrl }, s, { brand: args.brand }),
+    "utf8",
+  );
+  process.stdout.write(`✓ ${out} — Local SEO roadmap for ${business.name} (${s.code}).\n`);
+}
+
 /** `careplan`: write a recurring care-plan proposal (the retention artifact). */
 async function runCarePlan(args: ParsedArgs): Promise<void> {
   const s = stringsFor(auditLocale(args));
@@ -529,6 +562,10 @@ async function main(): Promise<void> {
   }
   if (args.command === "careplan" || args.command === "retention") {
     await runCarePlan(args);
+    return;
+  }
+  if (args.command === "localseo" || args.command === "roadmap") {
+    await runLocalSeo(args);
     return;
   }
   if (args.command !== "build") {
