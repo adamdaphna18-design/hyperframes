@@ -172,3 +172,24 @@ export { CompanyPlaybookProposer } from "./examples/company-brain/os-proposer.js
 export { Orchestrator, type Deliverable } from "./examples/company-brain/orchestrator.js";
 export { buildCompanySuite } from "./examples/company-brain/tasks.js";
 export { runCompanyBrainDemo } from "./examples/company-brain/run.js";
+
+// TinyRouter: a tiny router whose routing policy is a harness Self-Harness learns.
+export {
+  SPECIALISTS,
+  DOMAINS,
+  BEST_SPECIALIST,
+  DEFAULT_SPECIALIST,
+  specialistById,
+  type Domain,
+  type Specialist,
+} from "./examples/router/specialists.js";
+export { QUESTIONS, type Question } from "./examples/router/questions.js";
+export {
+  Router,
+  pickSpecialist,
+  type RouterTask,
+  type RouteResult,
+} from "./examples/router/router-agent.js";
+export { RouterProposer } from "./examples/router/router-proposer.js";
+export { buildRouterSuite } from "./examples/router/tasks.js";
+export { runRouterDemo } from "./examples/router/run.js";

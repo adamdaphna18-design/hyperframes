@@ -404,6 +404,37 @@ Everything real is behind an interface (`Warehouse`, `Retriever`), so the offlin
 deterministic run and a live drop-in (SQLite + embeddings + LLM specialists)
 share one pipeline — the same contract every other example holds.
 
+## Real-world example: TinyRouter (learned, gated routing)
+
+`src/examples/router/` reproduces the [TinyRouter](https://github.com/harrrshall/tinyrouter)
+idea — a tiny model that routes each question to the specialist that fits it,
+beating any single model by smart routing — with one twist: **the router's whole
+policy is a harness the Self-Harness loop learns and regression-gates.**
+
+Every other example gates the agent's _capability_; this one gates the _dispatch
+decision_, which brings a failure mode none of the others have — **misrouting**.
+The gate tension is a greedy catch-all: `route:*=math-pro` fixes the math
+questions but **misroutes the knowledge questions** the generalist was already
+answering, so the gate rejects it and forces the targeted `route:math=math-pro`.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:router
+```
+
+```
+roster: Generalist, Math specialist, Code specialist, Reasoning specialist
+best single model: Generalist at 25%
+  gate rejected a greedy catch-all route: it would misroute know-1, know-2, know-3, know-4
+router accuracy: 25% → 100%
+learned routing policy: route:math=math-pro, route:code=code-pro, route:reasoning=reason-pro
+the tiny router (3 routing rules) beats the best single model, 100% vs 25% — smart routing, not brute force
+```
+
+The whole "intelligence" of the router is three learned routing rules — and each
+one is regression-gated, so learning to route one domain provably never misroutes
+a domain that already worked. A real drop-in routes to actual models behind the
+same policy.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -470,3 +501,4 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 | `examples/data-science/`  | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
 | `examples/osint/`         | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
 | `examples/company-brain/` | Three-layer "AI-ready company": sources → brain → gated operating system     |
+| `examples/router/`        | TinyRouter: a tiny router whose routing policy the loop learns and gates     |

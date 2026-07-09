@@ -10,6 +10,9 @@ import { buildDsSuite } from "./examples/data-science/tasks.js";
 import { OsintAgent } from "./examples/osint/osint-agent.js";
 import { OsintHeuristicProposer } from "./examples/osint/osint-proposer.js";
 import { buildOsintSuite } from "./examples/osint/tasks.js";
+import { Router } from "./examples/router/router-agent.js";
+import { RouterProposer } from "./examples/router/router-proposer.js";
+import { buildRouterSuite } from "./examples/router/tasks.js";
 import { defaultHarness } from "./harness.js";
 import { selfHarness, type SelfHarnessResult } from "./loop.js";
 import { passingIds, runSuite } from "./runner.js";
@@ -49,6 +52,14 @@ const CAMPAIGNS: Campaign[] = [
       agent: new CompanyAgent(buildDemoBrain()),
       proposer: new CompanyPlaybookProposer(),
       tasks: buildCompanySuite(),
+    }),
+  },
+  {
+    name: "router",
+    make: () => ({
+      agent: new Router(),
+      proposer: new RouterProposer(),
+      tasks: buildRouterSuite(),
     }),
   },
 ];
