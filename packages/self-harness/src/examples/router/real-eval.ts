@@ -2,7 +2,13 @@ import { KeywordClassifier, type DomainClassifier } from "./classifier.js";
 import { REAL_PROBLEMS, type RealDomain, type RealProblem } from "./real-problems.js";
 import { BEST_SPECIALIST, specialistById } from "./specialists.js";
 
-const REAL_DOMAINS: RealDomain[] = ["code", "math", "reasoning"];
+const REAL_DOMAINS: RealDomain[] = ["code", "math", "reasoning", "knowledge"];
+
+export interface Misroute {
+  id: string;
+  trueDomain: RealDomain;
+  predicted: RealDomain;
+}
 
 export interface RealEvalResult {
   total: number;
@@ -12,6 +18,8 @@ export interface RealEvalResult {
   bestSingleAccuracy: number;
   bestSingleName: string;
   perDomain: Record<RealDomain, { total: number; correct: number }>;
+  /** The problems the classifier misrouted — the honest failures, kept explicit. */
+  misroutes: Misroute[];
 }
 
 /**
@@ -29,9 +37,11 @@ export function evaluateRealRouting(
     code: { total: 0, correct: 0 },
     math: { total: 0, correct: 0 },
     reasoning: { total: 0, correct: 0 },
+    knowledge: { total: 0, correct: 0 },
   };
 
   let routerCorrect = 0;
+  const misroutes: Misroute[] = [];
   for (const problem of problems) {
     const predicted = classifier.classify(problem.prompt);
     const specialist = specialistById(BEST_SPECIALIST[predicted]);
@@ -40,6 +50,8 @@ export function evaluateRealRouting(
     if (correct) {
       routerCorrect++;
       perDomain[problem.domain].correct++;
+    } else {
+      misroutes.push({ id: problem.id, trueDomain: problem.domain, predicted });
     }
   }
 
@@ -62,6 +74,7 @@ export function evaluateRealRouting(
     bestSingleAccuracy,
     bestSingleName,
     perDomain,
+    misroutes,
   };
 }
 
@@ -79,6 +92,13 @@ export async function runRealEvalDemo(): Promise<void> {
   }
   log(`\nrouter accuracy:      ${pct(r.routerAccuracy)}  (${r.routerCorrect}/${r.total})`);
   log(`best single model:    ${pct(r.bestSingleAccuracy)}  (${r.bestSingleName} alone)`);
+
+  if (r.misroutes.length > 0) {
+    log(`\nhonest misroutes (${r.misroutes.length}) — where the keyword classifier collides:`);
+    for (const m of r.misroutes.slice(0, 5)) {
+      log(`  ${m.id.padEnd(16)} ${m.trueDomain} → ${m.predicted}`);
+    }
+  }
   log(
     `\nthe tiny router beats the best single model on real data, ` +
       `${pct(r.routerAccuracy)} vs ${pct(r.bestSingleAccuracy)} — smart routing on real problems`,

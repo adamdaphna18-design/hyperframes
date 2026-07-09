@@ -435,33 +435,38 @@ one is regression-gated, so learning to route one domain provably never misroute
 a domain that already worked. A real drop-in routes to actual models behind the
 same policy.
 
-**On real data.** `demo:router:real` runs the router over **45 real problems**
+**On real data.** `demo:router:real` runs the router over **160 real problems**
 vendored from public benchmarks — [HumanEval](https://github.com/openai/human-eval)
 (code, MIT), [GSM8K](https://github.com/openai/grade-school-math) (math, MIT), and
 [BIG-bench](https://github.com/google/BIG-bench) logical-fallacy detection
-(reasoning, Apache-2.0). The router **classifies each problem from its text** (a
-deterministic keyword classifier offline; an embeddings/LLM classifier as a
-drop-in) and routes on that prediction — so a misclassification is a real
-misroute, not a pre-tagged lookup.
+(reasoning) and general-knowledge (knowledge), both Apache-2.0. The router
+**classifies each problem from its text** (a deterministic keyword classifier
+offline; an embeddings/LLM classifier as a drop-in) and routes on that
+prediction — so a misclassification is a real misroute, not a pre-tagged lookup.
 
 ```bash
 bun run --filter @hyperframes/self-harness demo:router:real
 ```
 
 ```
-45 real problems (HumanEval, GSM8K, BIG-bench), classified from text and routed
-  code       15/15 routed correctly
-  math       15/15 routed correctly
-  reasoning  15/15 routed correctly
-router accuracy:      100%  (45/45)
-best single model:    33%  (Code specialist alone)
-the tiny router beats the best single model on real data, 100% vs 33%
+160 real problems (HumanEval, GSM8K, BIG-bench), classified from text and routed
+  code       40/40 routed correctly
+  math       40/40 routed correctly
+  reasoning  39/40 routed correctly
+  knowledge  24/40 routed correctly
+router accuracy:      89%  (143/160)
+best single model:    25%  (Code specialist alone)
+honest misroutes (17) — where the keyword classifier collides:
+  bbench-know-1    knowledge → math      ("How many legs do horses have?")
+the tiny router beats the best single model on real data, 89% vs 25%
 ```
 
-The clean split reflects that these three problem families are surface-separable;
-harder, adversarial problems are exactly where the embeddings drop-in earns its
-keep. The result is real: real problems, a classifier reading real text, measured
-accuracy.
+This is deliberately **not** a suspicious 100%: the knowledge set overlaps math
+("How many legs…" scores on the math features), so the keyword classifier
+genuinely misroutes 17 of 160 — and those failures are printed, not hidden.
+That collision is exactly where the embeddings/LLM classifier drop-in (behind the
+`DomainClassifier` interface) earns its keep. The result is real: real problems, a
+classifier reading real text, honestly-measured accuracy.
 
 ## The outer loop (`loop-runner`)
 

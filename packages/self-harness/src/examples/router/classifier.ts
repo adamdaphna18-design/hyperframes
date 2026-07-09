@@ -64,8 +64,31 @@ const REASON_WORDS = [
   "assume",
   "opinion",
 ];
+const KNOWLEDGE_WORDS = [
+  "what is",
+  "what was",
+  "what are",
+  "who ",
+  "where ",
+  "when ",
+  "which ",
+  "capital",
+  "largest",
+  "planet",
+  "country",
+  "ocean",
+  "river",
+  "invented",
+  "discovered",
+  "named",
+];
 
-/** Deterministic keyword/feature classifier — no model, no network. */
+/**
+ * Deterministic keyword/feature classifier — no model, no network. It is honest,
+ * not perfect: a knowledge question phrased as "How many legs do horses have?"
+ * scores on the math features and gets misrouted — exactly the surface collision
+ * an embeddings/LLM drop-in would resolve.
+ */
 export class KeywordClassifier implements DomainClassifier {
   classify(text: string): RealDomain {
     const t = text.toLowerCase();
@@ -73,11 +96,12 @@ export class KeywordClassifier implements DomainClassifier {
       code: score(t, CODE_MARKERS) + (/def |>>>|->|\bself\b/.test(text) ? 4 : 0),
       math: score(t, MATH_WORDS) + Math.min((t.match(/\d+/g) ?? []).length, 6),
       reasoning: score(t, REASON_WORDS),
+      knowledge: score(t, KNOWLEDGE_WORDS),
     };
-    // Code markers are near-unambiguous; a real GSM8K/fallacy statement has none.
+    // Code markers are near-unambiguous; a real GSM8K/fallacy/trivia item has none.
     if (scores.code >= 4) return "code";
     let best: RealDomain = "reasoning";
-    for (const domain of ["code", "math", "reasoning"] as RealDomain[]) {
+    for (const domain of ["code", "math", "reasoning", "knowledge"] as RealDomain[]) {
       if (scores[domain] > scores[best]) best = domain;
     }
     return best;
