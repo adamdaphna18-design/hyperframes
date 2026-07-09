@@ -106,6 +106,57 @@ function str(v: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * Clone the source site's **brand colour**: prefer an explicit `theme-color` /
+ * tile-colour meta, else the most frequent non-neutral hex used in the page's
+ * inline styles / CSS (buttons, headers, links). Returns a `#rrggbb` hex or
+ * undefined. Deterministic.
+ */
+export function extractBrandColor(html: string): string | undefined {
+  const meta = metaContent(html, "theme-color") ?? metaContent(html, "msapplication-TileColor");
+  const norm = (c: string) => normalizeHex(c);
+  if (meta) {
+    const m = norm(meta);
+    if (m) return m;
+  }
+  // Tally hex colours in style/CSS, ignoring near-black/near-white/greys.
+  const counts = new Map<string, number>();
+  for (const match of html.matchAll(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g)) {
+    const hex = norm(`#${match[1]}`);
+    if (!hex || isNeutral(hex)) continue;
+    counts.set(hex, (counts.get(hex) ?? 0) + 1);
+  }
+  let best: string | undefined;
+  let bestN = 0;
+  for (const [hex, n] of counts) {
+    if (n > bestN) {
+      bestN = n;
+      best = hex;
+    }
+  }
+  return best;
+}
+
+/** Expand `#rgb`→`#rrggbb`, lowercase; undefined if not a hex colour. */
+function normalizeHex(c: string): string | undefined {
+  const m = c.trim().match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!m) return undefined;
+  let h = m[1]!.toLowerCase();
+  if (h.length === 3) h = h[0]! + h[0]! + h[1]! + h[1]! + h[2]! + h[2]!;
+  return `#${h}`;
+}
+
+/** True for near-black, near-white and low-saturation greys (not a brand colour). */
+function isNeutral(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 32 || min > 224) return true; // near-black / near-white
+  return max - min < 24; // grey (low saturation)
+}
+
 /** Collect up to `limit` absolute image URLs from og:image + <img> tags. */
 export function extractImages(html: string, base: string, limit = 8): string[] {
   const out: string[] = [];
@@ -186,6 +237,8 @@ export function scrapeBusiness(page: FetchedPage): Business {
     source: "web",
     tags: { scrapedFrom: finalUrl },
   };
+  const brand = extractBrandColor(html);
+  if (brand) business.brandColor = brand;
   const description =
     str(ld.description) ?? metaContent(html, "og:description") ?? metaContent(html, "description");
   if (description) business.description = description;

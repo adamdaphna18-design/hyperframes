@@ -87,9 +87,31 @@ export interface Palette {
   surface: string;
 }
 
-/** A stable, tasteful palette derived from the business name. */
+/** Hue (0–359) of a `#rrggbb` hex, or undefined if unparseable. */
+export function hueOfHex(hex: string | undefined): number | undefined {
+  const m = (hex ?? "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return undefined;
+  const r = parseInt(m[1]!.slice(0, 2), 16) / 255;
+  const g = parseInt(m[1]!.slice(2, 4), 16) / 255;
+  const b = parseInt(m[1]!.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return undefined; // grey — no meaningful hue
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return Math.round((((h * 60) % 360) + 360) % 360);
+}
+
+/**
+ * A stable, tasteful palette. When the business carries a cloned brand colour,
+ * the palette is anchored to *its* hue (so a cloned site keeps its identity);
+ * otherwise the hue is derived deterministically from the business name.
+ */
 export function paletteFor(business: Business): Palette {
-  const hue = hash(business.name) % 360;
+  const hue = hueOfHex(business.brandColor) ?? hash(business.name) % 360;
   return {
     hue,
     accent: `hsl(${hue} 82% 56%)`,

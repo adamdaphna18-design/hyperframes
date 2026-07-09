@@ -44,6 +44,8 @@ export interface Business {
   reviews: Review[];
   /** Aggregate rating 0–5 if the source provides one. */
   rating?: number;
+  /** Brand colour (hex) cloned from the source site — seeds the theme palette. */
+  brandColor?: string;
   location?: GeoPoint;
   /** Raw source tags kept for debugging / advanced templates. */
   tags?: Record<string, string>;
