@@ -464,9 +464,16 @@ the tiny router beats the best single model on real data, 89% vs 25%
 This is deliberately **not** a suspicious 100%: the knowledge set overlaps math
 ("How many legs…" scores on the math features), so the keyword classifier
 genuinely misroutes 17 of 160 — and those failures are printed, not hidden.
-That collision is exactly where the embeddings/LLM classifier drop-in (behind the
-`DomainClassifier` interface) earns its keep. The result is real: real problems, a
-classifier reading real text, honestly-measured accuracy.
+
+**The live drop-in.** `ModelClassifier` implements the same `DomainClassifier`
+interface with a real model, so `demo:router:real:live` (needs `@anthropic-ai/sdk`
+
+- a key) runs the identical evaluation with `new AnthropicModel()` doing the
+  classification — a model reads intent, not tokens, so the "How many legs" collision
+  resolves. A test pins this without the network: an **oracle** classifier reaches
+  **100%** on the same 160 problems, proving the 17 misroutes are _classifier
+  quality_, not router logic — exactly the gap the live model closes. The keyword
+  path stays the deterministic default; the model path is one flag away.
 
 ## The outer loop (`loop-runner`)
 

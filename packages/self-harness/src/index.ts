@@ -198,7 +198,12 @@ export {
   type RealProblem,
   type RealDomain,
 } from "./examples/router/real-problems.js";
-export { KeywordClassifier, type DomainClassifier } from "./examples/router/classifier.js";
+export {
+  KeywordClassifier,
+  ModelClassifier,
+  parseDomain,
+  type DomainClassifier,
+} from "./examples/router/classifier.js";
 export {
   evaluateRealRouting,
   runRealEvalDemo,

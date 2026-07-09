@@ -1,4 +1,5 @@
-import { KeywordClassifier, type DomainClassifier } from "./classifier.js";
+import { AnthropicModel } from "../../models/anthropic.js";
+import { KeywordClassifier, ModelClassifier, type DomainClassifier } from "./classifier.js";
 import { REAL_PROBLEMS, type RealDomain, type RealProblem } from "./real-problems.js";
 import { BEST_SPECIALIST, specialistById } from "./specialists.js";
 
@@ -29,10 +30,10 @@ export interface RealEvalResult {
  * single specialist (which only ever covers its own domain), the router wins by
  * classifying and routing — TinyRouter's claim, on real data.
  */
-export function evaluateRealRouting(
+export async function evaluateRealRouting(
   problems: RealProblem[] = REAL_PROBLEMS,
   classifier: DomainClassifier = new KeywordClassifier(),
-): RealEvalResult {
+): Promise<RealEvalResult> {
   const perDomain: Record<RealDomain, { total: number; correct: number }> = {
     code: { total: 0, correct: 0 },
     math: { total: 0, correct: 0 },
@@ -43,7 +44,7 @@ export function evaluateRealRouting(
   let routerCorrect = 0;
   const misroutes: Misroute[] = [];
   for (const problem of problems) {
-    const predicted = classifier.classify(problem.prompt);
+    const predicted = await classifier.classify(problem.prompt);
     const specialist = specialistById(BEST_SPECIALIST[predicted]);
     const correct = specialist?.strengths.includes(problem.domain) ?? false;
     perDomain[problem.domain].total++;
@@ -78,13 +79,17 @@ export function evaluateRealRouting(
   };
 }
 
-export async function runRealEvalDemo(): Promise<void> {
+export async function runRealEvalDemo(options: { live?: boolean } = {}): Promise<void> {
   const log = (line: string) => process.stdout.write(line + "\n");
-  const r = evaluateRealRouting();
+  const classifier: DomainClassifier = options.live
+    ? new ModelClassifier(new AnthropicModel())
+    : new KeywordClassifier();
+  const r = await evaluateRealRouting(REAL_PROBLEMS, classifier);
   const sources = [...new Set(REAL_PROBLEMS.map((p) => p.source))].join(", ");
   const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-  log("TinyRouter on REAL problems — HumanEval + GSM8K + BIG-bench\n");
+  const which = options.live ? "a live model" : "a deterministic keyword classifier";
+  log(`TinyRouter on REAL problems — HumanEval + GSM8K + BIG-bench (${which})\n`);
   log(`${r.total} real problems (${sources}), classified from text and routed\n`);
   for (const domain of REAL_DOMAINS) {
     const d = r.perDomain[domain];
@@ -105,9 +110,9 @@ export async function runRealEvalDemo(): Promise<void> {
   );
 }
 
-// Executed directly: real-eval.ts
+// Executed directly: real-eval.ts [--live]
 if ((import.meta as { main?: boolean }).main) {
-  runRealEvalDemo().catch((err: unknown) => {
+  runRealEvalDemo({ live: process.argv.includes("--live") }).catch((err: unknown) => {
     console.error(err);
     process.exitCode = 1;
   });

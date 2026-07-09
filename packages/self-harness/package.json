@@ -48,6 +48,7 @@
     "demo:brain": "tsx src/examples/company-brain/run.ts",
     "demo:router": "tsx src/examples/router/run.ts",
     "demo:router:real": "tsx src/examples/router/real-eval.ts",
+    "demo:router:real:live": "tsx src/examples/router/real-eval.ts --live",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
