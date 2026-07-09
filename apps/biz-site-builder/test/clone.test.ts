@@ -28,7 +28,12 @@ describe("brand-color cloning", () => {
 
   test("scrapeBusiness captures the brand colour", () => {
     const html = `<html><head><title>Blue Co</title><meta name="theme-color" content="#1e73be"></head><body></body></html>`;
-    const b = scrapeBusiness({ html, finalUrl: "https://blue.example/", status: 200 });
+    const b = scrapeBusiness({
+      html,
+      url: "https://blue.example/",
+      finalUrl: "https://blue.example/",
+      status: 200,
+    });
     expect(b.brandColor).toBe("#1e73be");
   });
 });

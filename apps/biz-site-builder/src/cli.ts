@@ -9,6 +9,7 @@ import { buildAuditReport, auditReportHtml, comparisonHtml } from "./generate/au
 import { recommendAiServices } from "./generate/opportunities.ts";
 import { estimateRoi } from "./generate/roi.ts";
 import { generateAgencyPage } from "./generate/agency.ts";
+import { carePlanHtml } from "./generate/careplan.ts";
 import { outputSlug } from "./generate/util.ts";
 import type { Business } from "./types.ts";
 import { stringsFor, type LocaleCode } from "./i18n/strings.ts";
@@ -204,6 +205,9 @@ Usage:
   biz-site-builder agency --brand "Your Studio" [--tagline X] [--email X] [--phone X] [--out agency.html]
        Write your agency's own public landing page (services + 50%-off launch
        offer + payment options), localized (--market israel / --locale he).
+  biz-site-builder careplan --brand "Client" [--category X] [--out careplan.html]
+       Write a recurring care-plan proposal (Care/Grow/Scale tiers) — the retention
+       artifact that turns a one-time build into monthly revenue (higher LTV → CAC pays back).
 
 Sources (repeatable, merged in order — later sources enrich earlier ones):
   csv:./businesses.csv              Ingest a CSV export
@@ -493,6 +497,21 @@ async function runAgency(args: ParsedArgs): Promise<void> {
   process.stdout.write(`✓ ${out} — agency landing page for "${name}" (${s.code}).\n`);
 }
 
+/** `careplan`: write a recurring care-plan proposal (the retention artifact). */
+async function runCarePlan(args: ParsedArgs): Promise<void> {
+  const s = stringsFor(auditLocale(args));
+  const business: Business = {
+    id: args.brand ?? "client",
+    name: args.brand ?? (s.code === "he" ? "העסק שלכם" : "Your business"),
+    category: args.category,
+    images: [],
+    reviews: [],
+  };
+  const out = args.out === ".out" ? "careplan.html" : args.out;
+  await writeFile(out, carePlanHtml(business, s, { brand: args.brand }), "utf8");
+  process.stdout.write(`✓ ${out} — retention care plan (${s.code}).\n`);
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.command === "help") {
@@ -506,6 +525,10 @@ async function main(): Promise<void> {
   }
   if (args.command === "agency" || args.command === "landing") {
     await runAgency(args);
+    return;
+  }
+  if (args.command === "careplan" || args.command === "retention") {
+    await runCarePlan(args);
     return;
   }
   if (args.command !== "build") {
