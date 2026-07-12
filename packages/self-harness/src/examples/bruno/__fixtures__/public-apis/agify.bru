@@ -1,0 +1,21 @@
+meta {
+  name: Agify
+  type: http
+  seq: 4
+}
+
+get {
+  url: https://api.agify.io?name={{name}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+assert {
+  res.status: eq 200
+  res.body.age: gt 0
+  res.body.name: eq michael
+}
