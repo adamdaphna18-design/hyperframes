@@ -1,0 +1,20 @@
+meta {
+  name: REST Countries
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://restcountries.com/v3.1/all
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+assert {
+  res.status: eq 200
+  res.body[0].name: isDefined
+}
