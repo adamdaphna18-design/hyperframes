@@ -276,3 +276,32 @@ export { CostRouter, type CostTask, type CostResult } from "./examples/cost-rout
 export { CostProposer } from "./examples/cost-router/cost-proposer.js";
 export { buildCostSuite } from "./examples/cost-router/tasks.js";
 export { runCostRouterDemo } from "./examples/cost-router/run.js";
+
+// The revenue layer on the cost-router: sell the savings, keep a share. The loop
+// learns gated per-segment pricing; the output is retained MRR/ARR — money you make.
+export {
+  SEGMENTS,
+  DEFAULT_TAKE_RATE,
+  MAXIMIZE_TAKE_RULE,
+  buildCustomerBook,
+  customerSavings,
+  invoice,
+  bill,
+  priceRule,
+  parsePrice,
+  takeRateFor,
+  billingReport,
+  type SegmentId,
+  type Segment,
+  type Customer,
+  type Billing,
+  type BillingReport,
+} from "./examples/cost-router/billing.js";
+export {
+  BillingAgent,
+  type BillingTask,
+  type BillingResult,
+} from "./examples/cost-router/billing-agent.js";
+export { PricingProposer } from "./examples/cost-router/billing-proposer.js";
+export { buildBillingSuite } from "./examples/cost-router/billing-tasks.js";
+export { runBillingDemo } from "./examples/cost-router/billing-run.js";

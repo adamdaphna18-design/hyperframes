@@ -565,6 +565,39 @@ bill you cut, and the number a "share of the savings" contract is written agains
 A real drop-in swaps the token-profile quality oracle for live model calls behind
 the same `Routing` interface.
 
+### Turning the savings into revenue
+
+Saving a customer money is a _product_; charging for it is the _business_.
+`billing.ts` is the revenue layer on top of the router — you resell the ~50%
+savings and keep a share. Here the harness is the **pricing policy** (one
+`price:<segment>:<rate>` rule per segment) and the failures the loop clusters are
+**lost accounts**: a customer churns when the take-rate exceeds the share of
+savings its segment will happily pay. The gate protects retained revenue, so the
+greedy "grab the maximum from everyone" move — which pumps revenue-per-deal but
+churns the book — is rejected. Pricing you can't keep isn't revenue.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:money
+```
+
+```
+  gate rejected 'maximize-take-rate': it churns 1 account(s) already won
+retained accounts: 1/10 → 10/10
+learned pricing: price:startup:0.2, price:midmarket:0.3
+MRR — naive flat pricing: $28,654   learned pricing: $44,208
+ARR — naive: $343,843   learned: $530,501
+revenue the loop unlocked: $15,555/mo ($186,658/yr)
+```
+
+A naive flat take-rate retains only the one enterprise account (tolerant of a
+higher cut) and churns the other nine. The loop learns a fair price per segment
+and retains the whole book — lifting ARR from ~$344k to ~$531k — while the gate
+stops the greedy 0.9 take-rate that would churn even the enterprise back toward
+zero. The MRR figures are grounded in the router's _real_ per-request savings
+(`billing.ts` derives them from `savingsReport`), so this is the same loop, one
+more domain: the "harness" is your price sheet, and the fingerprint it converges
+to is the segmented pricing a disciplined founder would land on.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -613,24 +646,25 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                           | Responsibility                                                                   |
-| ------------------------------ | -------------------------------------------------------------------------------- |
-| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`)     |
-| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                       |
-| `runner.ts`                    | Run an agent over a task suite                                                   |
-| `cluster.ts`                   | Group failures into recurring patterns                                           |
-| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                             |
-| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback     |
-| `gate.ts`                      | The regression acceptance criterion                                              |
-| `loop.ts`                      | The orchestrator (`selfHarness`)                                                 |
-| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                       |
-| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                              |
-| `demo/`                        | The runnable pathology suite + `runDemo`                                         |
-| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)            |
-| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers        |
-| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules         |
-| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)        |
-| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system         |
-| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates         |
-| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules            |
-| `examples/cost-router/`        | LLM cost-router: learns the cheapest safe model tier per class; gated on quality |
+| File                           | Responsibility                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`)      |
+| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                        |
+| `runner.ts`                    | Run an agent over a task suite                                                    |
+| `cluster.ts`                   | Group failures into recurring patterns                                            |
+| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                              |
+| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback      |
+| `gate.ts`                      | The regression acceptance criterion                                               |
+| `loop.ts`                      | The orchestrator (`selfHarness`)                                                  |
+| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                        |
+| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                               |
+| `demo/`                        | The runnable pathology suite + `runDemo`                                          |
+| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)             |
+| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers         |
+| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules          |
+| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)         |
+| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system          |
+| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates          |
+| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules             |
+| `examples/cost-router/`        | LLM cost-router: learns the cheapest safe model tier per class; gated on quality  |
+| `examples/cost-router/billing` | Revenue layer: resell the savings, learn gated per-segment pricing → retained MRR |

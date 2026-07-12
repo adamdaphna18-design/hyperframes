@@ -52,6 +52,7 @@
     "demo:router:real:bayes": "tsx src/examples/router/bayes-eval.ts",
     "demo:ta": "tsx src/examples/technical-analysis/run.ts",
     "demo:cost": "tsx src/examples/cost-router/run.ts",
+    "demo:money": "tsx src/examples/cost-router/billing-run.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
