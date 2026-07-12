@@ -148,6 +148,19 @@ export { ComplianceJudge } from "./examples/osint/compliance-judge.js";
 export { buildOsintSuite } from "./examples/osint/tasks.js";
 export { runOsintDemo } from "./examples/osint/run.js";
 
+// finfin: a governed trading agent learns the session's real governance rails, gated by Self-Harness.
+export {
+  DECISIONS,
+  GOVERNANCE_RULE,
+  type FinfinPathology,
+  type FinfinProbe,
+} from "./examples/finfin/catalog.js";
+export { FinfinAgent, type FinfinTask, type TradeResult } from "./examples/finfin/finfin-agent.js";
+export { FinfinHeuristicProposer } from "./examples/finfin/finfin-proposer.js";
+export { finfinScriptedModel } from "./examples/finfin/finfin-model.js";
+export { buildFinfinSuite } from "./examples/finfin/tasks.js";
+export { runFinfinDemo } from "./examples/finfin/run.js";
+
 // Company brain: the three-layer "AI-ready company" system, gated by Self-Harness.
 export { SEED_SOURCES, type Source, type SourceKind } from "./examples/company-brain/sources.js";
 export {

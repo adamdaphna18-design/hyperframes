@@ -46,6 +46,8 @@
     "demo:osint:model": "tsx src/examples/osint/run.ts --model",
     "demo:osint:committee": "tsx src/examples/osint/run.ts --committee",
     "demo:brain": "tsx src/examples/company-brain/run.ts",
+    "demo:finfin": "tsx src/examples/finfin/run.ts",
+    "demo:finfin:model": "tsx src/examples/finfin/run.ts --model",
     "demo:router": "tsx src/examples/router/run.ts",
     "demo:router:real": "tsx src/examples/router/real-eval.ts",
     "demo:router:real:live": "tsx src/examples/router/real-eval.ts --live",
