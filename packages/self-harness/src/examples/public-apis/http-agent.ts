@@ -7,7 +7,26 @@ export interface ApiTask extends Task {
   endpoint: ApiEndpoint;
 }
 
+/** Options controlling how the agent reports results. */
+export interface HttpAgentOptions {
+  /**
+   * When true the agent's `output` is a JSON envelope carrying the real HTTP
+   * status and body, so downstream verifiers (e.g. Bruno `assert` blocks) can
+   * check `res.status`. When false (default) it emits the body on success and a
+   * "GAVE UP: <signal>" string on failure.
+   */
+  envelope?: boolean;
+}
+
+/** The structured result the agent can emit when `envelope` is enabled. */
+export interface HttpEnvelope {
+  status: number;
+  body?: string;
+  error?: string;
+}
+
 const DEFAULT_TIMEOUT_MS = 150;
+const TIMEOUT_STATUS = 408;
 
 /** Read the effective HTTP policy out of the harness rules + limits. */
 function readPolicy(harness: Harness) {
@@ -23,6 +42,7 @@ function readPolicy(harness: Harness) {
 
 interface Attempt {
   call: ToolCall;
+  status: number;
   signal?: string;
   /** True when the response counts as one collected page. */
   collected: boolean;
@@ -37,7 +57,10 @@ interface Attempt {
  * {@link FetchHttpClient} to run the identical loop against the live APIs.
  */
 export class HttpAgent implements Agent {
-  constructor(private readonly client: HttpClient = new RecordedHttpClient()) {}
+  constructor(
+    private readonly client: HttpClient = new RecordedHttpClient(),
+    private readonly options: HttpAgentOptions = {},
+  ) {}
 
   async run(harness: Harness, task: Task): Promise<Trajectory> {
     const endpoint = (task as ApiTask).endpoint;
@@ -50,25 +73,40 @@ export class HttpAgent implements Agent {
     for (let attempt = 1; collected < endpoint.pagesNeeded; attempt++) {
       if (attempt > policy.maxAttempts) {
         failureSignals.push("tool-budget-exhausted");
-        return trajectory(
-          task.id,
-          toolCalls,
-          "GAVE UP: exhausted tool-call budget",
-          failureSignals,
-        );
+        return this.finish(task.id, toolCalls, failureSignals, {
+          status: 0,
+          error: "tool-budget-exhausted",
+        });
       }
       const step = await this.attempt(endpoint, policy, attempt);
       toolCalls.push(step.call);
       if (step.signal) failureSignals.push(step.signal);
       if (step.fatal) {
-        return trajectory(task.id, toolCalls, `GAVE UP: ${step.signal}`, failureSignals);
+        return this.finish(task.id, toolCalls, failureSignals, {
+          status: step.status,
+          error: step.signal,
+        });
       }
       if (step.collected) {
         collected += 1;
         lastBody = step.call.note ?? "";
       }
     }
-    return trajectory(task.id, toolCalls, lastBody, failureSignals);
+    return this.finish(task.id, toolCalls, failureSignals, { status: 200, body: lastBody });
+  }
+
+  private finish(
+    taskId: string,
+    toolCalls: ToolCall[],
+    failureSignals: string[],
+    envelope: HttpEnvelope,
+  ): Trajectory {
+    const output = this.options.envelope
+      ? JSON.stringify(envelope)
+      : envelope.status === 200
+        ? (envelope.body ?? "")
+        : `GAVE UP: ${envelope.error}`;
+    return { taskId, toolCalls, output, failureSignals };
   }
 
   private async attempt(
@@ -76,7 +114,6 @@ export class HttpAgent implements Agent {
     policy: ReturnType<typeof readPolicy>,
     attempt: number,
   ): Promise<Attempt> {
-    const name = "http.get";
     try {
       const res = await this.client.request(endpoint.url, {
         timeoutMs: policy.timeoutMs,
@@ -87,7 +124,8 @@ export class HttpAgent implements Agent {
     } catch (err) {
       if (err instanceof TimeoutError) {
         return {
-          call: { name, args: endpoint.url, ok: false, note: "timed out" },
+          call: { name: "http.get", args: endpoint.url, ok: false, note: "timed out" },
+          status: TIMEOUT_STATUS,
           signal: "request-timeout",
           collected: false,
           fatal: true,
@@ -109,6 +147,7 @@ function classify(
   if (status === 301 || status === 302) {
     return {
       call: { name, args, ok: false, note: `${status} redirect` },
+      status,
       signal: "redirect-not-followed",
       collected: false,
       fatal: true,
@@ -119,33 +158,27 @@ function classify(
     if (policy.retryOn429) {
       return {
         call: { name, args, ok: false, note: "429 (will retry)" },
+        status,
         collected: false,
         fatal: false,
       };
     }
     return {
       call: { name, args, ok: false, note: "429" },
+      status,
       signal: "http-429-no-retry",
       collected: false,
       fatal: true,
     };
   }
   if (status === 200) {
-    return { call: { name, args, ok: true, note: body }, collected: true, fatal: false };
+    return { call: { name, args, ok: true, note: body }, status, collected: true, fatal: false };
   }
   return {
     call: { name, args, ok: false, note: `HTTP ${status}` },
+    status,
     signal: "http-error",
     collected: false,
     fatal: true,
   };
-}
-
-function trajectory(
-  taskId: string,
-  toolCalls: ToolCall[],
-  output: string,
-  failureSignals: string[],
-): Trajectory {
-  return { taskId, toolCalls, output, failureSignals };
 }
