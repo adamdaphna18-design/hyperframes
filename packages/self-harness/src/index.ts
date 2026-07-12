@@ -170,6 +170,15 @@ export { FinfinHeuristicProposer } from "./examples/finfin/finfin-proposer.js";
 export { finfinScriptedModel } from "./examples/finfin/finfin-model.js";
 export { buildFinfinSuite } from "./examples/finfin/tasks.js";
 export { runFinfinDemo } from "./examples/finfin/run.js";
+export {
+  markBook,
+  markTrade,
+  type BookPnl,
+  type MarkedTrade,
+  type Priced,
+  type PriceMap,
+} from "./examples/finfin/marks.js";
+export { LIVE_PRICES, LIVE_PRICES_ASOF } from "./examples/finfin/marks-fixture.js";
 
 // Company brain: the three-layer "AI-ready company" system, gated by Self-Harness.
 export { SEED_SOURCES, type Source, type SourceKind } from "./examples/company-brain/sources.js";

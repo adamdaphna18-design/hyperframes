@@ -4,9 +4,17 @@ import { AnthropicModel } from "../../models/anthropic.js";
 import { ModelProposer } from "../../proposer.js";
 import { runSuite } from "../../runner.js";
 import type { Proposer } from "../../types.js";
-import { FinfinAgent, paperBook, renderReasoning } from "./finfin-agent.js";
+import {
+  FinfinAgent,
+  paperBook,
+  renderReasoning,
+  type PaperTrade,
+  type TradeResult,
+} from "./finfin-agent.js";
 import { finfinScriptedModel } from "./finfin-model.js";
 import { FinfinHeuristicProposer } from "./finfin-proposer.js";
+import { LIVE_PRICES, LIVE_PRICES_ASOF } from "./marks-fixture.js";
+import { markBook } from "./marks.js";
 import { buildFinfinSuite } from "./tasks.js";
 
 export interface FinfinDemoOptions {
@@ -72,12 +80,51 @@ async function printExecution(
   log("\n── decisions under the final governed harness (each explains itself) ──");
   for (const r of final.results) log("  " + renderReasoning(r.trajectory));
 
+  // Mark the EXECUTED book to live prices → real P&L.
   const trades = paperBook(final.results.map((r) => r.trajectory));
-  const total = trades.reduce((s, t) => s + t.notionalUsd, 0);
-  log(`\n── executed paper book (${trades.length} opens, $${total} committed) ──`);
-  for (const t of trades) {
-    log(`  ${t.direction.padEnd(7)} $${String(t.notionalUsd).padStart(4)}  ${t.setup}`);
+  const pnl = markBook(trades, LIVE_PRICES);
+  log(`\n── executed paper book, marked to live prices (${LIVE_PRICES_ASOF}) ──`);
+  for (const m of pnl.marked) {
+    log(
+      `  ${m.direction.padEnd(7)} ${m.ticker.padEnd(7)} $${String(m.notionalUsd).padStart(4)} ` +
+        `@ ${m.entry} → ${m.mark}  ${signPct(m.returnPct)}  P&L ${signUsd(m.pnlUsd)}`,
+    );
   }
+  log(
+    `  ── book P&L: ${signUsd(pnl.totalPnlUsd)} on $${pnl.totalNotional} (${signPct(pnl.totalReturnPct)})`,
+  );
+
+  // Mark what the VETOES declined → the P&L governance avoided.
+  const declined = declinedTrades(final.results.map((r) => r.trajectory));
+  const avoided = markBook(declined, LIVE_PRICES);
+  log(`\n── what the governance vetoes DECLINED (avoided P&L) ──`);
+  for (const m of avoided.marked) {
+    log(
+      `  ${m.ticker.padEnd(7)} would-be ${signPct(m.returnPct)} → avoided P&L ${signUsd(-m.pnlUsd)}`,
+    );
+  }
+  log(
+    `  ── vetoes changed the book by ${signUsd(-avoided.totalPnlUsd)} ` +
+      `(declining ${avoided.marked.length} trades that would have netted ${signUsd(avoided.totalPnlUsd)})`,
+  );
+}
+
+/** The trades the veto rails DECLINED (STAND_ASIDE with a recorded would-be trade), for avoided-P&L marking. */
+function declinedTrades(trajectories: { output: string }[]): PaperTrade[] {
+  const out: PaperTrade[] = [];
+  for (const t of trajectories) {
+    const r = JSON.parse(t.output) as TradeResult;
+    if (r.action === "STAND_ASIDE" && r.declined) out.push(r.declined);
+  }
+  return out;
+}
+
+function signPct(x: number): string {
+  return `${x >= 0 ? "+" : ""}${(x * 100).toFixed(2)}%`;
+}
+
+function signUsd(x: number): string {
+  return `${x >= 0 ? "+" : "−"}$${Math.abs(x).toFixed(2)}`;
 }
 
 function selectProposer(options: FinfinDemoOptions): Proposer {

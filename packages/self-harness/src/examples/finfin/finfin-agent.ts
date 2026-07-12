@@ -15,6 +15,7 @@ export const MAX_SIZE_FRACTION = 0.01;
 export interface PaperTrade {
   taskId: string;
   setup: string;
+  ticker: string;
   direction: "LONG" | "SHORT" | "NEUTRAL";
   sizeFraction: number;
   notionalUsd: number;
@@ -34,6 +35,8 @@ export interface TradeResult {
   lenses?: string[];
   /** The executed paper OPEN, present only when action = TAKE. */
   paper?: PaperTrade;
+  /** The trade a veto DECLINED, present only when a veto rail forced STAND_ASIDE — so the avoided P&L is markable. */
+  declined?: PaperTrade;
   /** Plain-language reasoning: what was checked, the governance verdict, and the resulting action. */
   rationale: string;
 }
@@ -96,6 +99,7 @@ export class FinfinAgent implements Agent {
     const toolCalls = lenses.map((lens, i) => confirm(i, lens, decision));
 
     if (GOVERNED_ACTION[decision.pathology] === "veto") {
+      const declined = openFor(decision, rules);
       const rationale =
         `Checked ${lenses.join(", ")}; the "${decision.requiredRule}" rail applies → ` +
         `STAND ASIDE on "${decision.setup}" (correctly refused — standing aside IS the governed call). No trade.`;
@@ -104,6 +108,7 @@ export class FinfinAgent implements Agent {
         action: "STAND_ASIDE",
         confirmations: decision.confirmations,
         lenses,
+        declined,
         rationale,
       };
       return { taskId: decision.id, toolCalls, output: JSON.stringify(result), failureSignals: [] };
@@ -138,6 +143,7 @@ function openFor(decision: FinfinProbe, rules: Set<string>): PaperTrade {
   return {
     taskId: decision.id,
     setup: decision.setup,
+    ticker: decision.ticker,
     direction: directionOf(decision.setup),
     sizeFraction,
     notionalUsd: Math.round(PAPER_SLEEVE_USD * sizeFraction),

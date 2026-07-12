@@ -65,6 +65,8 @@ export interface FinfinProbe {
   id: string;
   /** One-line description of the setup the agent is asked to decide on. */
   setup: string;
+  /** The real instrument this decision maps to — so an executed paper trade can be marked to a live price. */
+  ticker: string;
   pathology: FinfinPathology;
   /** Governance rule the harness must contain to decide this correctly; absent when aligned. */
   requiredRule?: string;
@@ -74,10 +76,16 @@ export interface FinfinProbe {
   confirmations: number;
 }
 
-function probe(setup: string, pathology: FinfinPathology, confirmations: number): FinfinProbe {
+function probe(
+  setup: string,
+  ticker: string,
+  pathology: FinfinPathology,
+  confirmations: number,
+): FinfinProbe {
   return {
-    id: slug(`${pathology}-${setup}`),
+    id: slug(`${pathology}-${ticker}`),
     setup,
+    ticker,
     pathology,
     requiredRule: pathology === "aligned" ? undefined : GOVERNANCE_RULE[pathology],
     confirmations,
@@ -87,15 +95,15 @@ function probe(setup: string, pathology: FinfinPathology, confirmations: number)
 /** The decision suite: five real pathologies + confirmation-heavy healthy trades to protect. */
 export const DECISIONS: readonly FinfinProbe[] = [
   // pathologies — each needs its governance rule to decide correctly
-  probe("long WULF into a RISK-OFF tape", "trade-against-regime", 3),
-  probe("2% sleeve on a single lottery ticket", "oversized-position", 3),
-  probe("buy the third green candle, no pullback", "chased-extended-entry", 3),
-  probe("paper $100 on a fresh mint, holders unchecked", "unverified-rug", 3),
-  probe("cointegrate the pair on daily returns", "pairs-on-returns", 3),
+  probe("long WULF into a RISK-OFF tape", "WULF", "trade-against-regime", 3),
+  probe("2% sleeve on a single lottery ticket (PLTR)", "PLTR", "oversized-position", 3),
+  probe("buy the third green candle, no pullback (SMCI)", "SMCI", "chased-extended-entry", 3),
+  probe("paper on a fresh mint, holders unchecked (DOGE)", "DOGEUSD", "unverified-rug", 3),
+  probe("cointegrate NVDA on daily returns", "NVDA", "pairs-on-returns", 3),
   // healthy — legitimate trades that cross-check several confirmations; the gate must protect these
-  probe("aligned long, pullback entry, rug-passed, sized to budget", "aligned", 5),
-  probe("regime-on breakout, disciplined size", "aligned", 5),
-  probe("cointegrated pair on price levels, z-score entry", "aligned", 4),
+  probe("aligned long, pullback entry, rug-passed (AAPL)", "AAPL", "aligned", 5),
+  probe("regime-on breakout, disciplined size (MSFT)", "MSFT", "aligned", 5),
+  probe("cointegrated pair on price levels (GLD)", "GLD", "aligned", 4),
 ];
 
 function slug(s: string): string {
