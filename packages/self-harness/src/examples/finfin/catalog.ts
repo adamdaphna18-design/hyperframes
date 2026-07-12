@@ -42,6 +42,25 @@ export const GOVERNANCE_RULE: Record<Exclude<FinfinPathology, "aligned">, string
   "pairs-on-returns": "cointegrate-on-price-levels",
 };
 
+/** The rule that caps position size once learned — it doesn't just gate, it SIZES the trade down. */
+export const CAP_RULE = GOVERNANCE_RULE["oversized-position"];
+
+/**
+ * What the governed (rule-present) decision actually DOES — the correct outcome differs by rail:
+ *   veto → the rail WITHHOLDS the trade (regime/chase/rug: standing aside IS the right call)
+ *   take → the trade executes, but corrected/sized (oversized → capped, returns-pair → price-levels)
+ * A healthy setup simply takes. This is why a learned rail is not "now it passes so it trades" — a
+ * veto rail's whole job is to make the agent NOT trade.
+ */
+export const GOVERNED_ACTION: Record<FinfinPathology, "veto" | "take"> = {
+  aligned: "take",
+  "trade-against-regime": "veto",
+  "oversized-position": "take", // taken, but capped to the risk budget
+  "chased-extended-entry": "veto",
+  "unverified-rug": "veto",
+  "pairs-on-returns": "take", // taken, corrected to price-levels
+};
+
 export interface FinfinProbe {
   id: string;
   /** One-line description of the setup the agent is asked to decide on. */

@@ -2,8 +2,9 @@ import { defaultHarness } from "../../harness.js";
 import { selfHarness } from "../../loop.js";
 import { AnthropicModel } from "../../models/anthropic.js";
 import { ModelProposer } from "../../proposer.js";
+import { runSuite } from "../../runner.js";
 import type { Proposer } from "../../types.js";
-import { FinfinAgent } from "./finfin-agent.js";
+import { FinfinAgent, paperBook, renderReasoning } from "./finfin-agent.js";
 import { finfinScriptedModel } from "./finfin-model.js";
 import { FinfinHeuristicProposer } from "./finfin-proposer.js";
 import { buildFinfinSuite } from "./tasks.js";
@@ -55,6 +56,27 @@ export async function runFinfinDemo(options: FinfinDemoOptions = {}): Promise<vo
   log(`confirmation budget preserved: maxToolCalls = ${result.finalHarness.limits.maxToolCalls}`);
   if (rejectedHalt) {
     log("(the halt-all-trading fix was rejected — risk edits are still gated against regressions)");
+  }
+
+  await printExecution(log, agent, tasks, result.finalHarness);
+}
+
+/** Run the suite under the final governed harness and print each decision's reasoning + the paper book. */
+async function printExecution(
+  log: (line: string) => void,
+  agent: FinfinAgent,
+  tasks: ReturnType<typeof buildFinfinSuite>,
+  finalHarness: Parameters<typeof runSuite>[1],
+): Promise<void> {
+  const final = await runSuite(agent, finalHarness, tasks);
+  log("\n── decisions under the final governed harness (each explains itself) ──");
+  for (const r of final.results) log("  " + renderReasoning(r.trajectory));
+
+  const trades = paperBook(final.results.map((r) => r.trajectory));
+  const total = trades.reduce((s, t) => s + t.notionalUsd, 0);
+  log(`\n── executed paper book (${trades.length} opens, $${total} committed) ──`);
+  for (const t of trades) {
+    log(`  ${t.direction.padEnd(7)} $${String(t.notionalUsd).padStart(4)}  ${t.setup}`);
   }
 }
 

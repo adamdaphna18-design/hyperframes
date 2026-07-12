@@ -150,12 +150,22 @@ export { runOsintDemo } from "./examples/osint/run.js";
 
 // finfin: a governed trading agent learns the session's real governance rails, gated by Self-Harness.
 export {
+  CAP_RULE,
   DECISIONS,
   GOVERNANCE_RULE,
   type FinfinPathology,
   type FinfinProbe,
 } from "./examples/finfin/catalog.js";
-export { FinfinAgent, type FinfinTask, type TradeResult } from "./examples/finfin/finfin-agent.js";
+export {
+  FinfinAgent,
+  MAX_SIZE_FRACTION,
+  PAPER_SLEEVE_USD,
+  paperBook,
+  renderReasoning,
+  type FinfinTask,
+  type PaperTrade,
+  type TradeResult,
+} from "./examples/finfin/finfin-agent.js";
 export { FinfinHeuristicProposer } from "./examples/finfin/finfin-proposer.js";
 export { finfinScriptedModel } from "./examples/finfin/finfin-model.js";
 export { buildFinfinSuite } from "./examples/finfin/tasks.js";
