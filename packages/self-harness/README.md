@@ -493,6 +493,38 @@ key); an oracle test shows the router hits **100%** with a perfect classifier, s
 the remaining gap is purely classifier quality. Three classifiers, one interface:
 keyword (deterministic default), Naive Bayes (no-API learned), LLM (live).
 
+## Real-world example: technical analysis
+
+`src/examples/technical-analysis/` runs the loop over **real AAPL prices** (506
+daily closes, 2015–2017, vendored from Plotly's public finance dataset). The
+indicators are the real thing — Wilder RSI, EMA-based MACD, SMA cross, Bollinger
+Bands — computed deterministically on the price series, and each trading scenario
+is a window whose pattern is **verified against that exact indicator code** (a
+test re-asserts, e.g., that the "overbought" window really reads RSI > 70). So the
+labels come from real readings, not invented ones.
+
+Under the naive harness the agent chases every move; the loop learns one indicator
+rule per pattern. The gate tension is over-fitting: for the momentum cluster the
+proposer offers a `chase-momentum` rule that buys on any positive MACD — right for
+momentum setups, but it **buys the calm/overbought days too**, regressing a
+setup that already read correctly. The gate rejects it.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:ta
+```
+
+```
+506 daily closes (2015-02-17 → 2017-02-16)
+  gate rejected 'chase-momentum': it would buy the overbought setup(s) neutral-40
+correct calls: 30% → 100%
+learned indicator rules: use-bollinger-breakout, use-macd-confirmation, respect-rsi-overbought, use-trend-cross
+```
+
+Same loop, a sixth domain — the "harness" here is a set of **indicator rules**,
+and the fingerprint it converges to is exactly the disciplined TA a trader would
+codify. A real drop-in swaps the vendored series for a live OHLC feed behind the
+same `number[]` shape.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -541,22 +573,23 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                      | Responsibility                                                               |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `types.ts`                | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
-| `harness.ts`              | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
-| `runner.ts`               | Run an agent over a task suite                                               |
-| `cluster.ts`              | Group failures into recurring patterns                                       |
-| `proposer.ts`             | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
-| `refining-proposer.ts`    | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
-| `gate.ts`                 | The regression acceptance criterion                                          |
-| `loop.ts`                 | The orchestrator (`selfHarness`)                                             |
-| `agents/`                 | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
-| `models/`                 | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
-| `demo/`                   | The runnable pathology suite + `runDemo`                                     |
-| `examples/public-apis/`   | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
-| `examples/bruno/`         | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
-| `examples/data-science/`  | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
-| `examples/osint/`         | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
-| `examples/company-brain/` | Three-layer "AI-ready company": sources → brain → gated operating system     |
-| `examples/router/`        | TinyRouter: a tiny router whose routing policy the loop learns and gates     |
+| File                           | Responsibility                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
+| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
+| `runner.ts`                    | Run an agent over a task suite                                               |
+| `cluster.ts`                   | Group failures into recurring patterns                                       |
+| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
+| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
+| `gate.ts`                      | The regression acceptance criterion                                          |
+| `loop.ts`                      | The orchestrator (`selfHarness`)                                             |
+| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
+| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
+| `demo/`                        | The runnable pathology suite + `runDemo`                                     |
+| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
+| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
+| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
+| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
+| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system     |
+| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates     |
+| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules        |

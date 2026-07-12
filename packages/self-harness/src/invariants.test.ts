@@ -13,6 +13,9 @@ import { buildOsintSuite } from "./examples/osint/tasks.js";
 import { Router } from "./examples/router/router-agent.js";
 import { RouterProposer } from "./examples/router/router-proposer.js";
 import { buildRouterSuite } from "./examples/router/tasks.js";
+import { TaAgent } from "./examples/technical-analysis/ta-agent.js";
+import { TaProposer } from "./examples/technical-analysis/ta-proposer.js";
+import { buildTaSuite } from "./examples/technical-analysis/tasks.js";
 import { defaultHarness } from "./harness.js";
 import { selfHarness, type SelfHarnessResult } from "./loop.js";
 import { passingIds, runSuite } from "./runner.js";
@@ -61,6 +64,10 @@ const CAMPAIGNS: Campaign[] = [
       proposer: new RouterProposer(),
       tasks: buildRouterSuite(),
     }),
+  },
+  {
+    name: "technical-analysis",
+    make: () => ({ agent: new TaAgent(), proposer: new TaProposer(), tasks: buildTaSuite() }),
   },
 ];
 

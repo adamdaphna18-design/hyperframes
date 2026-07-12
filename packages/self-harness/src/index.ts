@@ -216,3 +216,33 @@ export {
   type HeldOutResult,
 } from "./examples/router/bayes-classifier.js";
 export { runBayesEvalDemo } from "./examples/router/bayes-eval.js";
+
+// Technical analysis: real indicators on a real AAPL series; the loop learns TA rules.
+export {
+  sma,
+  ema,
+  emaSeries,
+  rsi,
+  macd,
+  bollinger,
+  type Macd,
+  type Bollinger,
+} from "./examples/technical-analysis/indicators.js";
+export {
+  AAPL_CLOSES,
+  AAPL_START_DATE,
+  AAPL_END_DATE,
+} from "./examples/technical-analysis/prices.js";
+export {
+  SCENARIOS,
+  RULE_FOR_PATTERN,
+  CORRECT_FOR_PATTERN,
+  HARMFUL_RULE,
+  type TaScenario,
+  type TaPattern,
+  type Signal,
+} from "./examples/technical-analysis/scenarios.js";
+export { TaAgent, type TaTask, type TaResult } from "./examples/technical-analysis/ta-agent.js";
+export { TaProposer } from "./examples/technical-analysis/ta-proposer.js";
+export { buildTaSuite } from "./examples/technical-analysis/tasks.js";
+export { runTechnicalAnalysisDemo } from "./examples/technical-analysis/run.js";
