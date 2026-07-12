@@ -1,0 +1,20 @@
+meta {
+  name: IPify
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://api.ipify.org?format=json
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+assert {
+  res.status: eq 200
+  res.body.ip: isDefined
+}
