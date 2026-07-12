@@ -252,16 +252,6 @@
         "vite": "^6.4.2",
       },
     },
-    "packages/self-harness": {
-      "name": "@hyperframes/self-harness",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@types/node": "^25.0.10",
-        "tsx": "^4.0.0",
-        "typescript": "^5.0.0",
-        "vitest": "^3.2.4",
-      },
-    },
     "packages/shader-transitions": {
       "name": "@hyperframes/shader-transitions",
       "version": "0.7.3",
@@ -684,8 +674,6 @@
     "@hyperframes/sdk": ["@hyperframes/sdk@workspace:packages/sdk"],
 
     "@hyperframes/sdk-playground": ["@hyperframes/sdk-playground@workspace:packages/sdk-playground"],
-
-    "@hyperframes/self-harness": ["@hyperframes/self-harness@workspace:packages/self-harness"],
 
     "@hyperframes/shader-transitions": ["@hyperframes/shader-transitions@workspace:packages/shader-transitions"],
 
