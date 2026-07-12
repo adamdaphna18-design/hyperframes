@@ -58,7 +58,10 @@ export class RefiningModelProposer implements Proposer {
     cluster: FailureCluster,
     suite: SuiteResult,
   ): Promise<HarnessPatch[]> {
-    const maxAttempts = this.config.maxAttempts ?? 3;
+    // Clamp to ≥1 so a stray maxAttempts of 0 or negative can't silently make
+    // the loop never ask the model and mark the cluster stuck (matches the
+    // Math.max(1, …) clamps the outer loop-runner already uses on its budgets).
+    const maxAttempts = Math.max(1, this.config.maxAttempts ?? 3);
     const tried: HarnessPatch[] = [];
     let feedback: string | null = null;
 

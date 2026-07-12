@@ -28,10 +28,11 @@ export function dsScriptedModel(): ScriptedModel {
  * A deterministic model for the *refining* proposer. Unlike {@link dsScriptedModel},
  * this one deliberately reaches for the blunt fix first: for "runaway-training"
  * its opening move is the over-aggressive compute clamp — which the regression
- * gate rejects for starving the heavy projects. Shown that rejection (the prompt
- * then contains "REJECTED"), it switches to the clean `use-early-stopping` rule.
- * That reject→refine step is exactly what {@link RefiningModelProposer} exists to
- * capture; every other pattern is fixed correctly on the first try.
+ * gate rejects for starving the heavy projects. Shown that rejection — the refine
+ * prompt echoes the rejected ops, so it contains the clamp's signature — it
+ * switches to the clean `use-early-stopping` rule. That reject→refine step is
+ * exactly what {@link RefiningModelProposer} exists to capture; every other pattern
+ * is fixed correctly on the first try.
  *
  * Swap this for `new AnthropicModel()` to have a live model do the self-correction.
  */
@@ -39,8 +40,10 @@ export function refiningDsScriptedModel(): ScriptedModel {
   const addRule = (pathology: keyof typeof PATHOLOGY_RULE) =>
     JSON.stringify([{ op: "addRule", text: PATHOLOGY_RULE[pathology] }]);
   return new ScriptedModel([
-    // A rejected attempt (only the runaway-training clamp is rejected) → the clean rule.
-    { match: "REJECTED", reply: addRule("runaway-training") },
+    // A retry after the clamp was rejected (its exact signature is echoed in the
+    // feedback) → the clean rule. Keyed on the clamp, not a bare "REJECTED", so a
+    // rejection on any other cluster would not wrongly return the early-stopping rule.
+    { match: '"maxToolCalls","value":3', reply: addRule("runaway-training") },
     // First pass at runaway-training: reach for the blunt compute clamp.
     {
       match: '"runaway-training"',

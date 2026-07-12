@@ -47,10 +47,9 @@ export class AgenticDsAgent implements Agent {
     for (const stage of WORKFLOW) {
       toolCalls.push({ name: "stage", args: stage, ok: true });
 
-      if (stage === "model-training" && harness.limits.maxToolCalls < project.computeSteps) {
-        return finish(project, toolCalls, "compute-budget-exhausted");
-      }
-
+      // Decide the required best-practice first — matching the reference DsAgent's
+      // order (rule before budget) so a missing rule is attributed to its pathology,
+      // not misreported as a compute-budget failure when the budget is also clamped.
       if (project.requiredRule && stage === criticalStage) {
         const decision = await this.model.complete({
           system,
@@ -64,6 +63,10 @@ export class AgenticDsAgent implements Agent {
           note: decision.trim(),
         });
         if (!applied) return finish(project, toolCalls, project.pathology);
+      }
+
+      if (stage === "model-training" && harness.limits.maxToolCalls < project.computeSteps) {
+        return finish(project, toolCalls, "compute-budget-exhausted");
       }
     }
 

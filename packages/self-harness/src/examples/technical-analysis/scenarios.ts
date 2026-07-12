@@ -43,8 +43,6 @@ export interface TaScenario {
   window: number[];
   requiredRule?: string;
   correct: Signal;
-  /** Rules that break this scenario if present — overbought is fooled by chase-momentum. */
-  sensitiveTo: string[];
 }
 
 function scenario(id: string, pattern: TaPattern, endIndex: number): TaScenario {
@@ -54,9 +52,6 @@ function scenario(id: string, pattern: TaPattern, endIndex: number): TaScenario 
     window: AAPL_CLOSES.slice(0, endIndex + 1),
     requiredRule: pattern === "neutral" ? undefined : RULE_FOR_PATTERN[pattern],
     correct: CORRECT_FOR_PATTERN[pattern],
-    // Overbought windows have positive momentum, so a naive "chase momentum" rule
-    // would wrongly buy them — that is the regression the gate protects against.
-    sensitiveTo: pattern === "overbought" ? [HARMFUL_RULE] : [],
   };
 }
 

@@ -185,6 +185,7 @@ async function runIteration(
 
   const learnedRules = newRules(startHarness.rules, campaign.finalHarness.rules);
   const newlyPassingTaskIds = collectNewlyPassing(campaign.rounds);
+  const harnessDiff = diffHarness(startHarness, campaign.finalHarness);
 
   const log: LoopIteration = {
     iteration,
@@ -195,9 +196,12 @@ async function runIteration(
     newlyPassingTaskIds,
     initialPassRate: campaign.initialPassRate,
     finalPassRate: campaign.finalPassRate,
-    harnessDiff: diffHarness(startHarness, campaign.finalHarness),
+    harnessDiff,
     campaignStoppedBecause: campaign.stoppedBecause,
-    madeProgress: learnedRules.length > 0 || newlyFailingTaskIds.length > 0,
+    // Progress is *any* harness change (a learned rule OR a limit-only fix) or
+    // newly-added tasks still to work on — not just new rules, which would score
+    // a limit-only fix as "quiet" and converge the outer loop prematurely.
+    madeProgress: harnessDiff.length > 0 || newlyFailingTaskIds.length > 0,
   };
   return { log, finalHarness: campaign.finalHarness };
 }

@@ -19,8 +19,9 @@ export interface TaResult {
  * makes the disciplined call **only when the harness enables that indicator** —
  * without the rule it defaults to a naive "buy the move", which is wrong for every
  * non-trivial setup. The `chase-momentum` rule buys on any positive MACD, which is
- * right for a momentum setup but wrong for an overbought one — the regression the
- * gate must catch.
+ * right for a momentum setup but wrong for a calm day that happens to be trending
+ * up (e.g. `neutral-40`, whose disciplined call is hold) — and because that calm
+ * setup already passes at baseline, buying it is the regression the gate catches.
  */
 export class TaAgent implements Agent {
   async run(harness: Harness, task: Task): Promise<Trajectory> {
@@ -50,8 +51,8 @@ function decide(
   const prices = scenario.window;
 
   // The over-aggressive rule fires first: buy on any positive momentum. It buys
-  // the momentum setups (right) but also any calm/overbought day trending up
-  // (wrong) — the regression the gate must catch.
+  // the momentum setups (right) but also a calm, baseline-passing "hold" day that
+  // happens to be trending up (wrong) — the regression the gate must catch.
   if (rules.has(HARMFUL_RULE)) {
     const m = macd(prices).histogram;
     if (m > 0) return { signal: "buy", indicator: "macd-hist(chase)", reading: m };

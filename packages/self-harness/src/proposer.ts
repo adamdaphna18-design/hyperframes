@@ -127,14 +127,55 @@ function buildProposerPrompt(harness: Harness, cluster: FailureCluster): string 
   ].join("\n");
 }
 
-/** Extract and validate the ops array from a model response. Tolerant of prose. */
+/**
+ * Extract and validate the ops array from a model response. Tolerant of prose,
+ * including brackets *outside* the JSON — a leading citation (`As in [RFC], …`)
+ * or a trailing footnote (`… See note [1].`). It scans each `[` for the first
+ * balanced array that parses into at least one valid op, rather than naively
+ * slicing first-`[` to last-`]` (which would swallow the surrounding brackets and
+ * discard a perfectly valid edit).
+ */
 export function parseOps(raw: string): PatchOp[] {
-  const start = raw.indexOf("[");
-  const end = raw.lastIndexOf("]");
-  if (start === -1 || end === -1 || end < start) return [];
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] !== "[") continue;
+    const slice = balancedArray(raw, i);
+    if (!slice) continue;
+    const ops = opsFromJson(slice);
+    if (ops.length > 0) return ops;
+  }
+  return [];
+}
+
+/** The substring from `start` (`[`) to its matching `]`, string-aware; null if unbalanced. */
+function balancedArray(raw: string, start: number): string | null {
+  const scan = { depth: 0, inString: false, escaped: false };
+  for (let i = start; i < raw.length; i++) {
+    if (step(scan, raw[i] as string)) return raw.slice(start, i + 1);
+  }
+  return null;
+}
+
+interface ScanState {
+  depth: number;
+  inString: boolean;
+  escaped: boolean;
+}
+
+/** Advance the bracket-scanner one character; returns true when the array closes. */
+function step(s: ScanState, ch: string): boolean {
+  if (s.escaped) s.escaped = false;
+  else if (ch === "\\") s.escaped = true;
+  else if (ch === '"') s.inString = !s.inString;
+  else if (s.inString) return false;
+  else if (ch === "[") s.depth++;
+  else if (ch === "]") return --s.depth === 0;
+  return false;
+}
+
+function opsFromJson(slice: string): PatchOp[] {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw.slice(start, end + 1));
+    parsed = JSON.parse(slice);
   } catch {
     return [];
   }

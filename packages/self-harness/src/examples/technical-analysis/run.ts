@@ -29,7 +29,7 @@ export async function runTechnicalAnalysisDemo(): Promise<void> {
     onEvent: (e) => {
       if (e.type === "gate" && !e.decision.accepted && e.decision.regressions.length > 0) {
         log(
-          `  gate rejected 'chase-momentum': it would buy the overbought setup(s) ${e.decision.regressions.join(", ")}`,
+          `  gate rejected 'chase-momentum': it would buy a calm hold-day trending up (${e.decision.regressions.join(", ")})`,
         );
       }
     },

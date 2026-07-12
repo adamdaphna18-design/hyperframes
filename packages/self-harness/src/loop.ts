@@ -93,6 +93,11 @@ export async function selfHarness(config: SelfHarnessConfig): Promise<SelfHarnes
         harness = decision.candidateHarness;
         acceptedPatchId = patch.id;
         onEvent?.({ type: "accept", round, decision, diff });
+        // The harness just changed, so a pattern marked stuck earlier (its only
+        // fix depended on a rule we hadn't learned yet) may now be fixable.
+        // Re-open every stuck pattern. This terminates: each accept strictly
+        // grows the passing set, so accepts — and therefore clears — are bounded.
+        stuckPatterns.clear();
         break;
       }
     }

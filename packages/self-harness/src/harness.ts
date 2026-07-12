@@ -38,9 +38,12 @@ function applyOp(h: Harness, op: PatchOp): void {
       h.rules = h.rules.filter((r) => r !== op.text);
       break;
     case "setLimit":
-      // The union is discriminated on `key`; each arm's `value` type is
-      // already narrowed, so this assignment is sound.
-      (h.limits[op.key] as number | boolean) = op.value;
+      // Assign through each narrowed arm so a mismatched key/value (e.g. a
+      // boolean into the numeric `maxToolCalls`) is a compile error, not a
+      // silently-coerced guardrail — no `as` cast required.
+      if (op.key === "maxToolCalls") h.limits.maxToolCalls = op.value;
+      else if (op.key === "avoidRepeatedFailures") h.limits.avoidRepeatedFailures = op.value;
+      else h.limits.persistEnvAcrossSessions = op.value;
       break;
     case "setSystemPrompt":
       h.systemPrompt = op.text;
