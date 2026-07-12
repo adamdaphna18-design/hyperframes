@@ -525,6 +525,46 @@ and the fingerprint it converges to is exactly the disciplined TA a trader would
 codify. A real drop-in swaps the vendored series for a live OHLC feed behind the
 same `number[]` shape.
 
+## Real-world example: the LLM cost-router (the money one)
+
+`src/examples/cost-router/` points the same loop at a spend problem: a mixed LLM
+workload (faq, classify, summarize, extract, code, reason, analyze) over four
+model tiers (nano → haiku → sonnet → opus) priced from a representative list.
+Quality is a step function of capability — a request is served acceptably iff its
+tier clears the class's minimum viable tier. The **harness _is_ the routing
+policy**: one `route:<class>:<tier>` rule per class.
+
+The cautious default every team reaches for — send _everything_ to the top tier
+so nothing under-performs — is the single most expensive way to run the workload.
+The loop starts cost-greedy instead (unrouted classes fall to haiku), clusters
+the under-served classes, and learns the **cheapest tier that still clears
+quality** for each. The gate tension is the obvious "cut the bill" move: for the
+busiest cluster the proposer offers a `force-cheapest-tier` rule that slams the
+whole workload onto the cheapest tier. It does cut cost — and it under-serves
+every class already routed correctly, so the gate rejects it. Cutting cost by
+breaking quality is disqualified.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:cost
+```
+
+```
+  gate rejected 'force-cheapest-tier': it under-serves 12 already-correct requests
+quality (served acceptably): 52% → 100%
+learned routes: route:code:sonnet, route:extract:sonnet, route:reason:opus, route:analyze:opus
+cost per batch — all-opus: $1.26   learned: $0.63
+saved per batch: $0.63 (50% of the bill), same 100% quality
+projected monthly saving @ 1M requests: $27289.13
+```
+
+The payoff is money, not a pass rate: **identical quality to the all-opus default,
+at roughly half the spend** — and the gate is exactly what makes that safe to
+sell, since it certifies no downgrade ever regressed a request. `reason` and
+`analyze` correctly _stay_ on opus (no phantom savings). The delta is the recurring
+bill you cut, and the number a "share of the savings" contract is written against.
+A real drop-in swaps the token-profile quality oracle for live model calls behind
+the same `Routing` interface.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -573,23 +613,24 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                           | Responsibility                                                               |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`) |
-| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                   |
-| `runner.ts`                    | Run an agent over a task suite                                               |
-| `cluster.ts`                   | Group failures into recurring patterns                                       |
-| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                         |
-| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback |
-| `gate.ts`                      | The regression acceptance criterion                                          |
-| `loop.ts`                      | The orchestrator (`selfHarness`)                                             |
-| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                   |
-| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                          |
-| `demo/`                        | The runnable pathology suite + `runDemo`                                     |
-| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)        |
-| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers    |
-| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules     |
-| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)    |
-| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system     |
-| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates     |
-| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules        |
+| File                           | Responsibility                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`)     |
+| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                       |
+| `runner.ts`                    | Run an agent over a task suite                                                   |
+| `cluster.ts`                   | Group failures into recurring patterns                                           |
+| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                             |
+| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback     |
+| `gate.ts`                      | The regression acceptance criterion                                              |
+| `loop.ts`                      | The orchestrator (`selfHarness`)                                                 |
+| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                       |
+| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                              |
+| `demo/`                        | The runnable pathology suite + `runDemo`                                         |
+| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)            |
+| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers        |
+| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules         |
+| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)        |
+| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system         |
+| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates         |
+| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules            |
+| `examples/cost-router/`        | LLM cost-router: learns the cheapest safe model tier per class; gated on quality |

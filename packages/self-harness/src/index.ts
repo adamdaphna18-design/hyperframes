@@ -246,3 +246,33 @@ export { TaAgent, type TaTask, type TaResult } from "./examples/technical-analys
 export { TaProposer } from "./examples/technical-analysis/ta-proposer.js";
 export { buildTaSuite } from "./examples/technical-analysis/tasks.js";
 export { runTechnicalAnalysisDemo } from "./examples/technical-analysis/run.js";
+
+// LLM cost-router: the loop learns the cheapest safe model tier per request class,
+// gated so no cost cut ever regresses quality — the money wedge, as a real artifact.
+export {
+  MODEL_TIERS,
+  MIN_TIER_FOR_CLASS,
+  COST_CUT_RULE,
+  TOP_TIER,
+  DEFAULT_TIER,
+  tierById,
+  routeRule,
+  parseRoute,
+  type Tier,
+  type TierId,
+  type RequestClass,
+} from "./examples/cost-router/tiers.js";
+export {
+  requestCost,
+  routingCost,
+  savingsReport,
+  type CostRequest,
+  type TokenProfile,
+  type Routing,
+  type SavingsReport,
+} from "./examples/cost-router/cost.js";
+export { buildRequests, TOKEN_PROFILES, WORKLOAD_MIX } from "./examples/cost-router/requests.js";
+export { CostRouter, type CostTask, type CostResult } from "./examples/cost-router/router-agent.js";
+export { CostProposer } from "./examples/cost-router/cost-proposer.js";
+export { buildCostSuite } from "./examples/cost-router/tasks.js";
+export { runCostRouterDemo } from "./examples/cost-router/run.js";

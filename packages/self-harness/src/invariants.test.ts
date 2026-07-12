@@ -16,6 +16,9 @@ import { buildRouterSuite } from "./examples/router/tasks.js";
 import { TaAgent } from "./examples/technical-analysis/ta-agent.js";
 import { TaProposer } from "./examples/technical-analysis/ta-proposer.js";
 import { buildTaSuite } from "./examples/technical-analysis/tasks.js";
+import { CostProposer } from "./examples/cost-router/cost-proposer.js";
+import { CostRouter } from "./examples/cost-router/router-agent.js";
+import { buildCostSuite } from "./examples/cost-router/tasks.js";
 import { defaultHarness } from "./harness.js";
 import { selfHarness, type SelfHarnessResult } from "./loop.js";
 import { passingIds, runSuite } from "./runner.js";
@@ -68,6 +71,14 @@ const CAMPAIGNS: Campaign[] = [
   {
     name: "technical-analysis",
     make: () => ({ agent: new TaAgent(), proposer: new TaProposer(), tasks: buildTaSuite() }),
+  },
+  {
+    name: "cost-router",
+    make: () => ({
+      agent: new CostRouter(),
+      proposer: new CostProposer(),
+      tasks: buildCostSuite(),
+    }),
   },
 ];
 

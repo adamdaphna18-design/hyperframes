@@ -51,6 +51,7 @@
     "demo:router:real:live": "tsx src/examples/router/real-eval.ts --live",
     "demo:router:real:bayes": "tsx src/examples/router/bayes-eval.ts",
     "demo:ta": "tsx src/examples/technical-analysis/run.ts",
+    "demo:cost": "tsx src/examples/cost-router/run.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
