@@ -209,3 +209,10 @@ export {
   runRealEvalDemo,
   type RealEvalResult,
 } from "./examples/router/real-eval.js";
+export {
+  BayesClassifier,
+  trainBayes,
+  evaluateHeldOutBayes,
+  type HeldOutResult,
+} from "./examples/router/bayes-classifier.js";
+export { runBayesEvalDemo } from "./examples/router/bayes-eval.js";

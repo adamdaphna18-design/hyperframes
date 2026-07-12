@@ -465,15 +465,33 @@ This is deliberately **not** a suspicious 100%: the knowledge set overlaps math
 ("How many legs…" scores on the math features), so the keyword classifier
 genuinely misroutes 17 of 160 — and those failures are printed, not hidden.
 
-**The live drop-in.** `ModelClassifier` implements the same `DomainClassifier`
-interface with a real model, so `demo:router:real:live` (needs `@anthropic-ai/sdk`
+**A no-API learned classifier.** You don't need a key to beat the keyword rule —
+`BayesClassifier` is a multinomial Naive Bayes model that **trains on the problems
+themselves** (no network, no API) and is evaluated **held-out** (5-fold, no
+leakage), so the number is honest:
 
-- a key) runs the identical evaluation with `new AnthropicModel()` doing the
-  classification — a model reads intent, not tokens, so the "How many legs" collision
-  resolves. A test pins this without the network: an **oracle** classifier reaches
-  **100%** on the same 160 problems, proving the 17 misroutes are _classifier
-  quality_, not router logic — exactly the gap the live model closes. The keyword
-  path stays the deterministic default; the model path is one flag away.
+```bash
+bun run --filter @hyperframes/self-harness demo:router:real:bayes
+```
+
+```
+Naive Bayes, trained on the data, 5-fold held-out (no leakage):
+  code 40/40   math 35/40   reasoning 37/40   knowledge 37/40
+Naive Bayes (no API):   93%  held-out  (149/160)
+keyword classifier:     89%  hand-tuned
+best single model:      25%  (Code specialist alone)
+```
+
+The learned model lifts **knowledge from 24/40 → 37/40**: weighing every word, it
+reads `legs`/`horses`/`have` as knowledge where the keyword rule sees only "how
+many" → math. A leave-one-out test confirms it on a genuinely held-out "How many
+legs…" item — the collision resolved with **zero API dependency**.
+
+**The API drop-in too.** `ModelClassifier` implements the same `DomainClassifier`
+interface with a real LLM (`demo:router:real:live`, needs `@anthropic-ai/sdk` + a
+key); an oracle test shows the router hits **100%** with a perfect classifier, so
+the remaining gap is purely classifier quality. Three classifiers, one interface:
+keyword (deterministic default), Naive Bayes (no-API learned), LLM (live).
 
 ## The outer loop (`loop-runner`)
 
