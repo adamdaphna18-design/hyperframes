@@ -660,8 +660,32 @@ State of MCP Reliability — 5 servers scanned
 One scan is a **free lead magnet** (the visibility wedge, for reliability); the
 aggregate is a **"State of MCP Reliability" report** (content that positions you as
 the authority); and every low grade is a **prospect** who needs exactly what the
-node ships. A live drop-in points `scoreServer` at manifests fetched from the real
-MCP registry — the same growth loop over 10,000 servers instead of five samples.
+node ships.
+
+The discovery half is **live and real**. `registry.ts` pages the actual public MCP
+registry (`registry.modelcontextprotocol.io/v0/servers`) and grades each server's
+_deploy readiness_ from the metadata that's really there — installable? source
+auditable? active? documented? A vendored **real snapshot** keeps the demo offline
+and deterministic; `--live` pulls fresh.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:registry          # vendored real snapshot
+bun run --filter @hyperframes/self-harness demo:registry -- --live # live pull
+```
+
+```
+State of the MCP Registry — 62 servers (deduped to latest)
+  grades: A:36  B:25  C:1  D:0  F:0
+  installable: 98% · with source repo: 61% · active: 100%
+  reachable (active + a remote endpoint): 52/62
+Biggest readiness gaps across the registry:
+  24 servers — no source repository to audit
+```
+
+The registry list gives metadata, not per-tool schemas — so the readiness scan is
+honest about what it can see, and the **reachable** servers become the discovery
+list that feeds the deep, arg-level reliability scan (`demo:scan`) once each one's
+`tools/list` is pulled. Real data, real growth loop, no fabricated scores.
 
 ## The outer loop (`loop-runner`)
 

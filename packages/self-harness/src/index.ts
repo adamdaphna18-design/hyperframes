@@ -350,3 +350,19 @@ export {
 } from "./examples/mcp-node/scorecard.js";
 export { SAMPLE_SERVERS } from "./examples/mcp-node/sample-manifests.js";
 export { runScorecardDemo } from "./examples/mcp-node/scorecard-run.js";
+
+// Live registry discovery: score the real public MCP registry for deploy readiness.
+export {
+  scoreReadiness,
+  latestOnly,
+  registryReport,
+  fetchRegistryLive,
+  mapRegistryEntry,
+  type RegistryServer,
+  type ReadinessCard,
+  type ReadinessRisk,
+  type ReadinessFinding,
+  type RegistryReport,
+} from "./examples/mcp-node/registry.js";
+export { REGISTRY_SNAPSHOT } from "./examples/mcp-node/registry-snapshot.js";
+export { runRegistryDemo } from "./examples/mcp-node/registry-run.js";
