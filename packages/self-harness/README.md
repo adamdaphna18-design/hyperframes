@@ -598,6 +598,40 @@ zero. The MRR figures are grounded in the router's _real_ per-request savings
 more domain: the "harness" is your price sheet, and the fingerprint it converges
 to is the segmented pricing a disciplined founder would land on.
 
+## Real-world example: the self-correcting MCP node
+
+`src/examples/mcp-node/` is what makes the cost-router survive a real, messy
+enterprise: a **self-correcting MCP node**. A standard [MCP](https://modelcontextprotocol.io)
+node breaks when a database renames a field (schema drift), an API wants a
+different argument format, or a tool rate-limits. The common blueprint answer is a
+"reflection & repair" loop that pays a fast LLM to re-fix each broken call at
+runtime — _forever_. This node does better: it repairs, then **promotes the
+recurring repair into a permanent, gated rule**, so the next thousand calls are
+handled for free. The harness _is_ the learned repair set (`map:*` renames,
+`coerce:*` format fixes, `backoff:*` rate-limit rules).
+
+The gate is what makes auto-repair safe. The tempting blanket fix — "429? just
+retry everything" — is a `retry:all` rule that re-executes _every_ call. Harmless
+for an idempotent read; but it **double-executes a payment charge**. The gate
+rejects it because it regresses the charge guard. A self-healing loop _without_ the
+gate ships the double-charge.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:mcp
+```
+
+```
+  gate rejected 'retry:all': it double-executes charge-guard (a charge)
+calls handled correctly: 33% → 100%
+learned repairs (now free, no per-call LLM fix): map:user:userId, coerce:date:iso-date, backoff:orders.search
+```
+
+This is the reliability layer the [10,000+ public MCP servers](https://modelcontextprotocol.io)
+all need and none ship: the same regression-gated loop, pointed at live tool
+traffic, turning per-call LLM repairs into free learned rules while _certifying_ it
+never double-executes a write. A live drop-in swaps `callTool` for a real MCP
+`CallToolRequest` and keeps a runtime repairer only for the novel long tail.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.
@@ -646,25 +680,26 @@ learned for `convergenceRounds` iterations. A `shouldStop` predicate and a
 
 ## Module map
 
-| File                           | Responsibility                                                                    |
-| ------------------------------ | --------------------------------------------------------------------------------- |
-| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`)      |
-| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                        |
-| `runner.ts`                    | Run an agent over a task suite                                                    |
-| `cluster.ts`                   | Group failures into recurring patterns                                            |
-| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                              |
-| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback      |
-| `gate.ts`                      | The regression acceptance criterion                                               |
-| `loop.ts`                      | The orchestrator (`selfHarness`)                                                  |
-| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                        |
-| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                               |
-| `demo/`                        | The runnable pathology suite + `runDemo`                                          |
-| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)             |
-| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers         |
-| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules          |
-| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)         |
-| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system          |
-| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates          |
-| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules             |
-| `examples/cost-router/`        | LLM cost-router: learns the cheapest safe model tier per class; gated on quality  |
-| `examples/cost-router/billing` | Revenue layer: resell the savings, learn gated per-segment pricing → retained MRR |
+| File                           | Responsibility                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| `types.ts`                     | Core interfaces (`Harness`, `Task`, `Agent`, `Proposer`, `Model`, `PatchOp`)        |
+| `harness.ts`                   | Harness defaults, `applyPatch`, `diffHarness`, `patchSize`                          |
+| `runner.ts`                    | Run an agent over a task suite                                                      |
+| `cluster.ts`                   | Group failures into recurring patterns                                              |
+| `proposer.ts`                  | `HeuristicProposer` + `ModelProposer` (+ `parseOps`)                                |
+| `refining-proposer.ts`         | `RefiningModelProposer` — re-proposes using the gate's rejection as feedback        |
+| `gate.ts`                      | The regression acceptance criterion                                                 |
+| `loop.ts`                      | The orchestrator (`selfHarness`)                                                    |
+| `agents/`                      | `SimulatedAgent` (deterministic world) + `LlmAgent` (real)                          |
+| `models/`                      | `ScriptedModel` (offline) + `AnthropicModel` (real)                                 |
+| `demo/`                        | The runnable pathology suite + `runDemo`                                            |
+| `examples/public-apis/`        | Real `HttpAgent` over public-apis endpoints (recorded + live clients)               |
+| `examples/bruno/`              | Parse a Bruno `.bru` collection → tasks; `assert` blocks become verifiers           |
+| `examples/data-science/`       | 31 curated DS projects → level-graded suite; DS pitfalls → harness rules            |
+| `examples/osint/`              | OSINT tool map → recon compliance guardrails (+ Compliance-Officer judge)           |
+| `examples/company-brain/`      | Three-layer "AI-ready company": sources → brain → gated operating system            |
+| `examples/router/`             | TinyRouter: a tiny router whose routing policy the loop learns and gates            |
+| `examples/technical-analysis/` | Real AAPL prices → RSI/MACD/Bollinger; the loop learns gated TA rules               |
+| `examples/cost-router/`        | LLM cost-router: learns the cheapest safe model tier per class; gated on quality    |
+| `examples/cost-router/billing` | Revenue layer: resell the savings, learn gated per-segment pricing → retained MRR   |
+| `examples/mcp-node/`           | Self-correcting MCP node: promotes drift/format/rate-limit repairs into gated rules |

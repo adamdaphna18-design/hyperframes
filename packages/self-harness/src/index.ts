@@ -305,3 +305,31 @@ export {
 export { PricingProposer } from "./examples/cost-router/billing-proposer.js";
 export { buildBillingSuite } from "./examples/cost-router/billing-tasks.js";
 export { runBillingDemo } from "./examples/cost-router/billing-run.js";
+
+// Self-correcting MCP node: heals drift/format/rate-limit failures, then promotes
+// each recurring repair into a permanent gated rule (never double-executes a write).
+export {
+  RULE_FOR_FAILURE,
+  RETRY_ALL_RULE,
+  parseMap,
+  parseCoerce,
+  parseBackoff,
+  type FailureKind,
+} from "./examples/mcp-node/rules.js";
+export {
+  TOOLS,
+  getTool,
+  callTool,
+  type ToolSchema,
+  type ToolResult,
+} from "./examples/mcp-node/tools.js";
+export {
+  McpNode,
+  type McpCall,
+  type McpTask,
+  type NodeResult,
+} from "./examples/mcp-node/node-agent.js";
+export { RepairProposer } from "./examples/mcp-node/node-proposer.js";
+export { buildCalls } from "./examples/mcp-node/calls.js";
+export { buildMcpSuite } from "./examples/mcp-node/tasks.js";
+export { runMcpNodeDemo } from "./examples/mcp-node/run.js";

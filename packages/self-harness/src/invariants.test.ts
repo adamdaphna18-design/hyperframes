@@ -22,6 +22,9 @@ import { buildCostSuite } from "./examples/cost-router/tasks.js";
 import { BillingAgent } from "./examples/cost-router/billing-agent.js";
 import { PricingProposer } from "./examples/cost-router/billing-proposer.js";
 import { buildBillingSuite } from "./examples/cost-router/billing-tasks.js";
+import { McpNode } from "./examples/mcp-node/node-agent.js";
+import { RepairProposer } from "./examples/mcp-node/node-proposer.js";
+import { buildMcpSuite } from "./examples/mcp-node/tasks.js";
 import { defaultHarness } from "./harness.js";
 import { selfHarness, type SelfHarnessResult } from "./loop.js";
 import { passingIds, runSuite } from "./runner.js";
@@ -89,6 +92,14 @@ const CAMPAIGNS: Campaign[] = [
       agent: new BillingAgent(),
       proposer: new PricingProposer(),
       tasks: buildBillingSuite(),
+    }),
+  },
+  {
+    name: "mcp-node",
+    make: () => ({
+      agent: new McpNode(),
+      proposer: new RepairProposer(),
+      tasks: buildMcpSuite(),
     }),
   },
 ];
