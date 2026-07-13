@@ -687,6 +687,37 @@ honest about what it can see, and the **reachable** servers become the discovery
 list that feeds the deep, arg-level reliability scan (`demo:scan`) once each one's
 `tools/list` is pulled. Real data, real growth loop, no fabricated scores.
 
+### The deep scan: real `tools/list`, real schemas
+
+`mcp-client.ts` is a real MCP streamable-http client — it runs the protocol
+handshake (`initialize` → `notifications/initialized` → `tools/list`) and returns a
+server's actual tool schemas (JSON-Schema `inputSchema` + the 2025 tool annotations
+`readOnlyHint` / `destructiveHint` / `idempotentHint`). `deep-scan.ts` maps those into
+the grader and scores real risks: a **destructive tool with no idempotency hint** is
+the double-charge exposure, a **free-form object arg** is drift, an **unconstrained
+format-sensitive arg** is coercion bait.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:deep           # grade real-shape schemas
+bun run --filter @hyperframes/self-harness demo:deep -- --live # pull from real endpoints
+```
+
+```
+  [D]  payments-mcp  (risk 6)
+       • [unsafe-retry] charge.create: mutation with no idempotency key — a blind retry double-executes
+  [A]  search-mcp  (risk 0)
+Deep reliability across 4 servers — grades A:1  B:1  C:0  D:2  F:0
+  2 carry an unsafe-retry risk (a destructive tool with no idempotency hint — the double-charge)
+```
+
+The client is genuinely functional against any open MCP endpoint (the protocol
+handshake and SSE framing are unit-tested through an injected `fetch`). Inside a
+locked-down network the endpoints 403 and `--live` reports true coverage — `reached
+0/5` — rather than faking it; the default demonstrates the grader on representative
+real-shape tool lists so the pipeline is provable offline. This is the report that
+names real servers with real risks, from actual schemas — the content and the lead
+list the whole growth loop was built to produce.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.

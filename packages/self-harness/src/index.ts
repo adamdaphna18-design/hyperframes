@@ -366,3 +366,22 @@ export {
 } from "./examples/mcp-node/registry.js";
 export { REGISTRY_SNAPSHOT } from "./examples/mcp-node/registry-snapshot.js";
 export { runRegistryDemo } from "./examples/mcp-node/registry-run.js";
+
+// Deep scan: pull a real server's tools/list over the MCP protocol and grade its schemas.
+export {
+  McpClient,
+  FixtureToolSource,
+  type ToolSource,
+  type McpTool,
+  type ToolAnnotations,
+  type JsonSchema,
+  type JsonSchemaProp,
+} from "./examples/mcp-node/mcp-client.js";
+export {
+  deepScan,
+  toolsToManifest,
+  type ReachableServer,
+  type DeepScanResult,
+} from "./examples/mcp-node/deep-scan.js";
+export { SAMPLE_TOOL_LISTS, SAMPLE_REACHABLE } from "./examples/mcp-node/sample-tool-lists.js";
+export { runDeepScanDemo } from "./examples/mcp-node/deep-scan-run.js";
