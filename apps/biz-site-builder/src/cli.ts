@@ -11,6 +11,7 @@ import { estimateRoi } from "./generate/roi.ts";
 import { generateAgencyPage } from "./generate/agency.ts";
 import { carePlanHtml } from "./generate/careplan.ts";
 import { localSeoHtml } from "./generate/localseo.ts";
+import { arbitrageScore, rankByArbitrage, type ArbitrageScore } from "./generate/arbitrage.ts";
 import { scrapeBusiness } from "./sources/web.ts";
 import { outputSlug } from "./generate/util.ts";
 import type { Business } from "./types.ts";
@@ -368,6 +369,7 @@ interface BatchRow {
   estimate: { kind: string; min: number; max: number; currency: string };
   services: string[];
   reportPath: string;
+  arbitrage: ArbitrageScore;
 }
 
 /** `audit --csv <file>`: audit every business in a CSV, with a roll-up index. */
@@ -438,15 +440,18 @@ async function runBatchAudit(args: ParsedArgs): Promise<void> {
       estimate: report.estimate,
       services: report.services,
       reportPath,
+      arbitrage: arbitrageScore(report, s),
     });
     scanned++;
   }
 
-  rows.sort((a, b) => a.score - b.score); // worst (hottest lead) first
-  await writeFile(`${outDir}/index.json`, JSON.stringify({ businesses: rows }, null, 2), "utf8");
-  await writeFile(`${outDir}/index.html`, batchIndexHtml(rows, s), "utf8");
+  // Arbitrage layer: rank by opportunity spread (value × gap × ease), not just brokenness.
+  const ranked = rankByArbitrage(rows);
+  await writeFile(`${outDir}/index.json`, JSON.stringify({ businesses: ranked }, null, 2), "utf8");
+  await writeFile(`${outDir}/index.html`, batchIndexHtml(ranked, s), "utf8");
+  const prime = ranked.filter((r) => r.arbitrage.grade === "A").length;
   process.stdout.write(
-    `\n✓ ${outDir}/index.html — audited ${scanned}/${jobs.length} businesses (worst score first).\n`,
+    `\n✓ ${outDir}/index.html — audited ${scanned}/${jobs.length} businesses, ranked by opportunity spread (${prime} grade-A).\n`,
   );
 }
 
@@ -455,10 +460,18 @@ function batchIndexHtml(rows: BatchRow[], s: import("./i18n/strings.ts").Strings
   const he = s.code === "he";
   const t = (en: string, hebrew: string) => (he ? hebrew : en);
   const esc = (x: string) => x.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const gradeColor: Record<string, string> = { A: "#16a34a", B: "#d97706", C: "#9aa0ad" };
   const body = rows
-    .map((r) => {
+    .map((r, i) => {
       const color = r.score >= 80 ? "#16a34a" : r.score >= 55 ? "#d97706" : "#dc2626";
+      const g = r.arbitrage.grade;
       return `<tr>
+        <td class="rank">${i + 1}</td>
+        <td>
+          <span class="grade" style="background:${gradeColor[g]}">${g}</span>
+          <span class="spread" title="${t("opportunity spread", "מרווח הזדמנות")}">${r.arbitrage.spread}</span>
+          <div class="why">${esc(r.arbitrage.rationale)}</div>
+        </td>
         <td><a href="${esc(r.reportPath)}">${esc(r.name)}</a><div class="u">${esc(r.url)}</div></td>
         <td style="color:${color};font-weight:800">${r.score}</td>
         <td>${r.platform ? esc(r.platform) : "—"}</td>
@@ -469,19 +482,28 @@ function batchIndexHtml(rows: BatchRow[], s: import("./i18n/strings.ts").Strings
   return `<!doctype html>
 <html lang="${s.lang}" dir="${s.dir}">
   <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${t("Batch audit", "סריקה קבוצתית")}</title>
+  <title>${t("Prospect board", "לוח לקוחות פוטנציאליים")}</title>
   <style>
-    body { font-family: ui-sans-serif, system-ui, Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; color: #1f2430; }
-    h1 { font-size: 22px; margin-bottom: 16px; }
+    body { font-family: ui-sans-serif, system-ui, Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 24px; color: #1f2430; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    .sub { color: #5b6270; margin-bottom: 16px; font-size: 14px; }
     table { width: 100%; border-collapse: collapse; }
-    td, th { text-align: start; padding: 12px; border-bottom: 1px solid #eceef4; }
+    td, th { text-align: start; padding: 12px; border-bottom: 1px solid #eceef4; vertical-align: top; }
+    .rank { color: #9aa0ad; font-weight: 800; width: 28px; }
+    .grade { color: #fff; font-weight: 800; border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+    .spread { font-weight: 800; margin-inline-start: 8px; }
+    .why { color: #5b6270; font-size: 13px; margin-top: 4px; max-width: 320px; }
     .u { color: #5b6270; font-size: 13px; word-break: break-all; }
     a { color: #4f46e5; text-decoration: none; font-weight: 700; }
   </style></head>
   <body>
-    <h1>${t("Batch audit — worst score first", "סריקה קבוצתית — הציון הנמוך קודם")}</h1>
+    <h1>${t("Prospect board — ranked by opportunity spread", "לוח לקוחות — מדורג לפי מרווח הזדמנות")}</h1>
+    <div class="sub">${t(
+      "Spread = value (industry economics) × gap (how underpriced) × ease. A ranking heuristic, not a measurement.",
+      "מרווח = ערך (כלכלת הענף) × פער (עד כמה מתומחר בחסר) × קלות. היוריסטיקת דירוג, לא מדידה.",
+    )}</div>
     <table>
-      <thead><tr><th>${t("Business", "עסק")}</th><th>${t("Score", "ציון")}</th><th>${t("Platform", "פלטפורמה")}</th><th>${t("Estimate", "הערכה")}</th></tr></thead>
+      <thead><tr><th>#</th><th>${t("Spread", "מרווח")}</th><th>${t("Business", "עסק")}</th><th>${t("Score", "ציון")}</th><th>${t("Platform", "פלטפורמה")}</th><th>${t("Estimate", "הערכה")}</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
   </body>
