@@ -632,6 +632,37 @@ traffic, turning per-call LLM repairs into free learned rules while _certifying_
 never double-executes a write. A live drop-in swaps `callTool` for a real MCP
 `CallToolRequest` and keeps a runtime repairer only for the novel long tail.
 
+### The public MCP ecosystem as growth data
+
+Rather than build a ninth self-healing server to compete in a crowded field,
+`scorecard.ts` turns the ecosystem into a funnel. It statically analyzes a server's
+**public tool manifest** (the `tools/list` schema anyone can fetch) for the exact
+risks the node fixes — a non-idempotent mutation (double-charge on retry), a
+free-form object arg (schema drift), a format-sensitive string with no constraint,
+no documented rate limits — and grades it. It scrapes nothing and fabricates no
+runtime data; it's a linter for MCP reliability over public schemas.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:scan
+```
+
+```
+  [D]  payments-mcp  (risk 6)
+       • [unsafe-retry] charge.create: mutation with no idempotency key — a blind retry double-executes
+       • [format-ambiguity] charge.create: 'amount' looks format-sensitive but is an unconstrained string
+  [A]  well-built-mcp  (risk 0)
+
+State of MCP Reliability — 5 servers scanned
+  grades: A:1  B:2  C:0  D:2  F:0
+  2/5 carry an unsafe-retry risk (a write that double-executes on blind retry)
+```
+
+One scan is a **free lead magnet** (the visibility wedge, for reliability); the
+aggregate is a **"State of MCP Reliability" report** (content that positions you as
+the authority); and every low grade is a **prospect** who needs exactly what the
+node ships. A live drop-in points `scoreServer` at manifests fetched from the real
+MCP registry — the same growth loop over 10,000 servers instead of five samples.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.

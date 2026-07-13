@@ -333,3 +333,20 @@ export { RepairProposer } from "./examples/mcp-node/node-proposer.js";
 export { buildCalls } from "./examples/mcp-node/calls.js";
 export { buildMcpSuite } from "./examples/mcp-node/tasks.js";
 export { runMcpNodeDemo } from "./examples/mcp-node/run.js";
+
+// Growth engine: the public MCP ecosystem as data. Scan a server's manifest for the
+// risks the node fixes → a free lead magnet, a "State of MCP Reliability" report, a lead list.
+export {
+  scoreServer,
+  ecosystemReport,
+  type ServerManifest,
+  type ToolManifest,
+  type ToolArg,
+  type Finding,
+  type Scorecard,
+  type Grade,
+  type RiskKind,
+  type EcosystemReport,
+} from "./examples/mcp-node/scorecard.js";
+export { SAMPLE_SERVERS } from "./examples/mcp-node/sample-manifests.js";
+export { runScorecardDemo } from "./examples/mcp-node/scorecard-run.js";

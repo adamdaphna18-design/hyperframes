@@ -54,6 +54,7 @@
     "demo:cost": "tsx src/examples/cost-router/run.ts",
     "demo:money": "tsx src/examples/cost-router/billing-run.ts",
     "demo:mcp": "tsx src/examples/mcp-node/run.ts",
+    "demo:scan": "tsx src/examples/mcp-node/scorecard-run.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
