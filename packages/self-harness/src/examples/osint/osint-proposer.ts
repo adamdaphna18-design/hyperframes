@@ -13,7 +13,6 @@ import { GUARDRAIL_RULE } from "./catalog.js";
  */
 export class OsintHeuristicProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

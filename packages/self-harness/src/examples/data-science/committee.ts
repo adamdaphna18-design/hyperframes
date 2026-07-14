@@ -159,7 +159,6 @@ export class CommitteeProposer implements Proposer {
   constructor(private readonly config: CommitteeConfig) {}
 
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     harness: Harness,
     cluster: FailureCluster,

@@ -718,6 +718,46 @@ real-shape tool lists so the pipeline is provable offline. This is the report th
 names real servers with real risks, from actual schemas — the content and the lead
 list the whole growth loop was built to produce.
 
+## What makes this different — the gate, benchmarked at scale
+
+Every self-improving / self-healing system on the market shares one acceptance
+criterion: **did the aggregate get better?** (net-positive). Ours is stricter —
+_accept only if it breaks nothing that already worked._ `src/benchmark/` tests that
+difference head-to-head, running the same loop under three acceptance policies:
+
+| Policy         | Accepts a candidate when…                        | Who ships this             |
+| -------------- | ------------------------------------------------ | -------------------------- |
+| `greedy-first` | it's the first fix offered (regressions ignored) | naive self-healers         |
+| `net-positive` | it fixes more than it breaks                     | most optimizers / RL loops |
+| `gated` (ours) | it fixes ≥1 **and breaks nothing**               | this framework             |
+
+```bash
+bun run --filter @hyperframes/self-harness demo:benchmark
+```
+
+```
+Synthetic sweep (400 campaigns each):
+  policy         avg-final-pass  runs-that-broke-something  total-regressions  avg-fixed
+  greedy-first             62%                        397               1537        6.0
+  net-positive             89%                        287                384        5.8
+  gated                    98%                          0                  0        5.8
+
+Real product campaigns (regressions each policy introduces):
+  campaign             greedy-first   net-positive   gated
+  cost-router               12 (0%)       0 (100%)   0 (100%)
+  technical-analysis         1 (70%)       1 (70%)   0 (100%)
+```
+
+Across **400 randomized campaigns**, only the gate introduces **zero** regressions —
+and it lands the _highest_ final pass rate (98%), because breaking a working task
+tanks the aggregate the other policies chase. It fixes just as much (avg 5.8/6); the
+only thing it gives up is the rare fix that's inseparable from a regression, which is
+exactly the fix you _want_ refused. On real product campaigns the point is sharpest:
+on `technical-analysis` even the market's net-positive criterion breaks a call and
+ends at 70% — only the gate reaches 100% clean. That gap is the product. The demo is
+deterministic (seeded), and the invariant — gate → 0 regressions, others → some — is
+asserted in `benchmark.test.ts`.
+
 ## The outer loop (`loop-runner`)
 
 `selfHarness()` runs one _campaign_ of improvement rounds over a fixed suite.

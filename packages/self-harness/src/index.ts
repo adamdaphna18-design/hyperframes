@@ -50,6 +50,17 @@ export { makeSimTask, SimulatedAgent, type Pathology, type SimTask } from "./age
 export { LlmAgent, renderHarness } from "./agents/llm.js";
 export { stabilizeAgent } from "./agents/stabilize.js";
 
+// Gate benchmark: the differentiator (accept-iff-no-regression) vs the market's
+// net-positive and naive greedy criteria, measured across randomized campaigns at scale.
+export {
+  accepts,
+  runWithPolicy,
+  type AcceptancePolicy,
+  type PolicyRunResult,
+} from "./benchmark/policy-loop.js";
+export { buildSyntheticCampaign, type SyntheticConfig } from "./benchmark/synthetic.js";
+export { runBenchmarkDemo } from "./benchmark/run.js";
+
 export { buildDemoSuite } from "./demo/pathologies.js";
 export { runDemo, describeEvent } from "./demo/run-demo.js";
 export { runLoopDemo } from "./demo/run-loop.js";

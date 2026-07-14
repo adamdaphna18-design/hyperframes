@@ -12,7 +12,6 @@ import { HARMFUL_SEO_RULE, PLAYBOOK_FOR_VERTICAL } from "./verticals.js";
  */
 export class CompanyPlaybookProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

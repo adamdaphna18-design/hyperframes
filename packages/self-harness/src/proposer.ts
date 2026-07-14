@@ -18,7 +18,6 @@ import type {
 export class HeuristicProposer implements Proposer {
   // Invoked polymorphically through the Proposer interface (in the loop), so
   // static analysis can't see the concrete call site.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

@@ -14,7 +14,6 @@ import { RETRY_ALL_RULE, RULE_FOR_FAILURE, type FailureKind } from "./rules.js";
  */
 export class RepairProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

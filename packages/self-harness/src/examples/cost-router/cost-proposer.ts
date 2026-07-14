@@ -13,7 +13,6 @@ import { COST_CUT_RULE, MIN_TIER_FOR_CLASS, routeRule, type RequestClass } from 
  */
 export class CostProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

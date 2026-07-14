@@ -10,7 +10,6 @@ import type { FailureCluster, Harness, HarnessPatch, Proposer, SuiteResult } fro
  */
 export class HttpHeuristicProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

@@ -12,7 +12,6 @@ import { BEST_SPECIALIST, type Domain } from "./specialists.js";
  */
 export class RouterProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

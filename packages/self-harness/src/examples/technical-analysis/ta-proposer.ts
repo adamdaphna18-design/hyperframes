@@ -12,7 +12,6 @@ import { HARMFUL_RULE, RULE_FOR_PATTERN } from "./scenarios.js";
  */
 export class TaProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,

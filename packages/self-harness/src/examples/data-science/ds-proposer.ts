@@ -11,7 +11,6 @@ import { PATHOLOGY_RULE } from "./projects.js";
  */
 export class DsHeuristicProposer implements Proposer {
   // Dispatched through the Proposer interface by the loop.
-  // fallow-ignore-next-line unused-class-member
   async propose(
     _harness: Harness,
     cluster: FailureCluster,
