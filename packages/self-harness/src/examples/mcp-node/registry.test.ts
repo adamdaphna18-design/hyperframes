@@ -104,4 +104,17 @@ describe("the live-fetch drop-in maps the raw API shape", () => {
     // The mapper handles a bare entry too.
     expect(mapRegistryEntry(raw.servers[0]).status).toBe("active");
   });
+
+  it("maps a threadbare entry (no description, remotes, packages, or _meta) without crashing", () => {
+    const mapped = mapRegistryEntry({ server: { name: "bare/mcp" } });
+    expect(mapped.name).toBe("bare/mcp");
+    expect(mapped.description).toBe("");
+    expect(mapped.remoteTypes).toEqual([]);
+    expect(mapped.packageCount).toBe(0);
+    expect(mapped.status).toBe("unknown");
+    expect(mapped.isLatest).toBe(false);
+    // And it scores as an uninstallable, undocumented, sourceless server, not an error.
+    expect(() => scoreReadiness(mapped)).not.toThrow();
+    expect(scoreReadiness(mapped).reachable).toBe(false);
+  });
 });

@@ -68,6 +68,7 @@ export class McpClient implements ToolSource {
         clientInfo: { name: "reliability-scan", version: "0.1" },
       },
     });
+    if (init.message.error) throw new Error(init.message.error.message ?? "initialize error");
     const session = init.sessionId;
     await this.notify(url, session);
     const listed = await this.rpc(url, session, {

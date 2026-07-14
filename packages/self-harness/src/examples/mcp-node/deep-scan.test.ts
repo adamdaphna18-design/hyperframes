@@ -108,3 +108,65 @@ describe("the MCP client speaks the protocol", () => {
     expect(tools[0]?.name).toBe("sse.tool");
   });
 });
+
+describe("the scanner survives malformed real-world tool schemas", () => {
+  it("maps a tool with no inputSchema and no annotations without crashing", () => {
+    const manifest = toolsToManifest("bare", [{ name: "noSchema" }]);
+    expect(manifest.tools).toHaveLength(1);
+    const tool = manifest.tools[0];
+    expect(tool?.args).toEqual([]);
+    expect(tool?.mutation).toBe(false);
+    expect(tool?.idempotent).toBe(false);
+  });
+
+  it("handles missing properties, an untyped arg, and a null-ish annotation set", () => {
+    const tools: McpTool[] = [
+      { name: "emptySchema", inputSchema: { type: "object" } },
+      { name: "untypedArg", inputSchema: { type: "object", properties: { x: {} } } },
+    ];
+    const manifest = toolsToManifest("mixed", tools);
+    // An untyped arg defaults to the object type (unconstrained) rather than throwing.
+    const untyped = manifest.tools[1]?.args[0];
+    expect(untyped?.name).toBe("x");
+    expect(untyped?.type).toBe("object");
+    // Scoring the whole thing must not throw.
+    expect(() => scoreServer(manifest)).not.toThrow();
+  });
+
+  it("a tools/list result with no tools array yields an empty list, not a crash", async () => {
+    const fakeFetch = (async () =>
+      new Response(JSON.stringify({ result: {} }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })) as unknown as typeof fetch;
+    const tools = await new McpClient(fakeFetch).listTools("https://example.test/mcp");
+    expect(tools).toEqual([]);
+  });
+
+  it("throws cleanly on an initialize error instead of pressing on", async () => {
+    const fakeFetch = (async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      if (body.method === "initialize") {
+        return new Response(JSON.stringify({ error: { message: "unauthorized" } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ result: { tools: [] } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+    await expect(new McpClient(fakeFetch).listTools("https://example.test/mcp")).rejects.toThrow(
+      "unauthorized",
+    );
+  });
+
+  it("throws on a non-2xx transport response", async () => {
+    const fakeFetch = (async () =>
+      new Response("nope", { status: 502 })) as unknown as typeof fetch;
+    await expect(new McpClient(fakeFetch).listTools("https://example.test/mcp")).rejects.toThrow(
+      "mcp 502",
+    );
+  });
+});

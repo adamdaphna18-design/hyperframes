@@ -157,6 +157,28 @@ describe("cross-example invariants", () => {
         expect(decisions).toContain(true);
         expect(decisions).toContain(false);
       });
+
+      it("non-vacuous gate — at least one rejection is caused by a real regression", async () => {
+        // A rejection only proves the gate does protective work if the rejected patch
+        // would genuinely have broken a passing task — not merely failed to help. The
+        // gate computes `regressions` by applying the candidate and re-running, so a
+        // rejection with regressions > 0 is a candidate that measurably regressed the
+        // suite. Every campaign must have at least one, or its "gate" is decorative.
+        const { agent, proposer, tasks } = c.make();
+        let regressionRejections = 0;
+        await selfHarness({
+          agent,
+          proposer,
+          tasks,
+          initialHarness: defaultHarness(),
+          onEvent: (e) => {
+            if (e.type === "gate" && !e.decision.accepted && e.decision.regressions.length > 0) {
+              regressionRejections += 1;
+            }
+          },
+        });
+        expect(regressionRejections).toBeGreaterThan(0);
+      });
     });
   }
 });

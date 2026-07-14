@@ -48,6 +48,7 @@ export { AnthropicModel, type AnthropicModelOptions } from "./models/anthropic.j
 
 export { makeSimTask, SimulatedAgent, type Pathology, type SimTask } from "./agents/simulated.js";
 export { LlmAgent, renderHarness } from "./agents/llm.js";
+export { stabilizeAgent } from "./agents/stabilize.js";
 
 export { buildDemoSuite } from "./demo/pathologies.js";
 export { runDemo, describeEvent } from "./demo/run-demo.js";
