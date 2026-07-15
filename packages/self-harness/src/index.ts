@@ -378,6 +378,14 @@ export {
 } from "./examples/mcp-node/registry.js";
 export { REGISTRY_SNAPSHOT } from "./examples/mcp-node/registry-snapshot.js";
 export { runRegistryDemo } from "./examples/mcp-node/registry-run.js";
+export {
+  adviseServers,
+  classifyDomain,
+  type DomainTag,
+  type NamedFinding,
+  type AdvisorReport,
+} from "./examples/mcp-node/advisor.js";
+export { runNamesDemo } from "./examples/mcp-node/names-run.js";
 
 // Deep scan: pull a real server's tools/list over the MCP protocol and grade its schemas.
 export {

@@ -56,6 +56,7 @@
     "demo:mcp": "tsx src/examples/mcp-node/run.ts",
     "demo:scan": "tsx src/examples/mcp-node/scorecard-run.ts",
     "demo:registry": "tsx src/examples/mcp-node/registry-run.ts",
+    "demo:names": "tsx src/examples/mcp-node/names-run.ts",
     "demo:deep": "tsx src/examples/mcp-node/deep-scan-run.ts",
     "demo:benchmark": "tsx src/benchmark/run.ts",
     "test": "vitest run",

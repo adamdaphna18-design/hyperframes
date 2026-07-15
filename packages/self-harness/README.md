@@ -718,6 +718,27 @@ real-shape tool lists so the pipeline is provable offline. This is the report th
 names real servers with real risks, from actual schemas — the content and the lead
 list the whole growth loop was built to produce.
 
+### Naming names — the lead list
+
+`advisor.ts` turns the scan into a **named, ranked lead list**. It grades every real
+server by the readiness gaps verifiable from public metadata, tags each by blast
+radius (financial / write-heavy / general from name + description), and surfaces the
+**high-stakes subset**: money- or write-handling servers with no auditable source —
+where a `tools/list` deep-scan pays off most. Each finding carries a concrete
+suggestion.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:names           # vendored snapshot
+bun run --filter @hyperframes/self-harness demo:names -- --live # the whole registry
+```
+
+Run live against the real registry it scans thousands of servers, e.g. **3,791
+servers → 1,577 below A → a 449-server high-stakes list** (financial/write, no source
+repo). It is deliberately honest: a missing repo/docs/install path is a _fact_ from
+the registry; the arg-level double-charge is flagged as a _candidate_ that the deep
+`tools/list` scan confirms — the high-stakes list is exactly where that scan is worth
+running.
+
 ## What makes this different — the gate, benchmarked at scale
 
 Every self-improving / self-healing system on the market shares one acceptance
