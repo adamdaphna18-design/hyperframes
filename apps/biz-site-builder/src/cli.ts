@@ -267,10 +267,11 @@ Options:
       --live-plugins    Augment plugin choices via the WordPress.org plugins API
       --geocode         Geocode addresses missing coordinates via OSM Nominatim (adds a map)
       --geocode-email <e>  Contact string for Nominatim's User-Agent
-      --photos          Fill empty galleries with the business's OWN real photos (existing site → place API). Never stock/AI.
-      --photo-provider <p>  google | foursquare (default: whichever key is set; Foursquare preferred)
-      --places-key <k>  Google Places API key (or GOOGLE_PLACES_API_KEY) — photos for no-website businesses
-      --foursquare-key <k>  Foursquare Places key (or FOURSQUARE_API_KEY) — cheaper photo alternative
+      --photos          Fill empty galleries with the business's OWN real photos. FREE by default
+                        (existing site + OSM/Wikimedia tags, no key). Never stock/AI.
+      --photo-provider <p>  Optional PAID fallback: google | foursquare (only if a key is set)
+      --places-key <k>  Google Places API key (or GOOGLE_PLACES_API_KEY) — optional paid fallback
+      --foursquare-key <k>  Foursquare Places key (or FOURSQUARE_API_KEY) — optional paid fallback
       --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
       --brand <name>    Brand suffix appended to page <title>s
       --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event

@@ -1,6 +1,7 @@
 import type { Business } from "../types.ts";
 import { extractImages, USER_AGENTS } from "./web.ts";
 import { googlePlacesProvider, type PhotoProvider } from "./photo-provider.ts";
+import { osmFreePhotos } from "./osm-photos.ts";
 
 /**
  * **Photo enrichment** — fill `business.images` with the business's OWN real
@@ -8,14 +9,16 @@ import { googlePlacesProvider, type PhotoProvider } from "./photo-provider.ts";
  *
  *   1. Photos already on the record (operator-supplied / already scraped).
  *   2. Their existing website, if any — harvest the real `<img>` / og:image
- *      shots (no API key needed).
- *   3. Their Google Business Profile via the Places API (the only real source
- *      for a business that has no website at all).
+ *      shots. FREE, no key.
+ *   3. FREE, keyless OSM + Wikimedia Commons photo tags on the record
+ *      (`image`, `wikimedia_commons`, `wikidata` → P18). No paid API.
+ *   4. Optional: a paid place-API provider (Google Places / Foursquare), ONLY
+ *      if the operator explicitly configured one. Never required.
  *
  * It never invents or substitutes a stock/AI image: if none of these yield a
  * photo, the business stays photoless and the site uses its (now stronger)
- * photoless layout. Inert without a key and without network — all fetches are
- * injected, so this is fully unit-tested and a no-op in a sandbox.
+ * photoless layout. Inert without network — all fetches are injected, so this is
+ * fully unit-tested and a no-op in a sandbox.
  */
 
 export interface PhotoEnrichOptions {
@@ -71,7 +74,13 @@ export async function findRealPhotos(
     if (fromSite.length) return fromSite.slice(0, max);
   }
 
-  // 3) A place-API provider (the no-website case): Google Places, Foursquare, …
+  // 3) FREE, keyless: OSM/Wikimedia photo tags on the record (no paid API).
+  const freeOpts: Parameters<typeof osmFreePhotos>[1] = { maxPhotos: max };
+  if (opts.fetchImpl) freeOpts.fetchImpl = opts.fetchImpl;
+  const fromOsm = await osmFreePhotos(business, freeOpts);
+  if (fromOsm.length) return fromOsm;
+
+  // 4) Optional paid place-API provider (only if the operator configured one).
   const provider =
     opts.provider ?? (opts.placesApiKey ? googlePlacesProvider(opts.placesApiKey) : undefined);
   if (provider) {
