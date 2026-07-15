@@ -19,6 +19,7 @@ import { generateRobots, generateSitemap } from "./generate/sitemap.ts";
 import { generateWordPressBundle } from "./wordpress/bundle.ts";
 import { geocodeAddress } from "./sources/geocode.ts";
 import { enrichPhotos, type PhotoEnrichOptions } from "./sources/photos.ts";
+import type { PhotoProvider } from "./sources/photo-provider.ts";
 import { createRuntime } from "./workflow/runtime.ts";
 import { Journal } from "./workflow/journal.ts";
 
@@ -53,9 +54,11 @@ export interface BuildOptions {
   geocode?: boolean;
   /** Contact string for Nominatim's required User-Agent. */
   geocodeEmail?: string;
-  /** Fill empty galleries with the business's OWN real photos (site → Google Places). */
+  /** Fill empty galleries with the business's OWN real photos (site → place API). */
   photos?: boolean;
-  /** Google Places API key — enables real photos for businesses with no website. */
+  /** Vendor-neutral photo provider (Google Places / Foursquare) for no-website businesses. */
+  photoProvider?: PhotoProvider;
+  /** Convenience: a Google Places key (wrapped as a provider). Prefer `photoProvider`. */
   placesApiKey?: string;
   /** Base URL where <out> will be hosted (for sitemap.xml / robots.txt / canonical). */
   baseUrl?: string;
@@ -151,6 +154,7 @@ export async function build(opts: BuildOptions): Promise<BuildResult> {
       const added = await rt.step(`photos/${business.id}`, () => {
         const enrichOpts: PhotoEnrichOptions = { languageCode: locale };
         if (opts.fetchImpl) enrichOpts.fetchImpl = opts.fetchImpl;
+        if (opts.photoProvider) enrichOpts.provider = opts.photoProvider;
         if (opts.placesApiKey) enrichOpts.placesApiKey = opts.placesApiKey;
         return enrichPhotos(business, enrichOpts);
       });

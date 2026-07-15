@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Business } from "../src/types.ts";
 import { enrichPhotos, findRealPhotos } from "../src/sources/photos.ts";
+import { foursquareProvider } from "../src/sources/photo-provider.ts";
 
 function biz(p: Partial<Business>): Business {
   return { id: "b", name: "Rosa's", images: [], reviews: [], ...p };
@@ -48,6 +49,20 @@ describe("photo enrichment — real photos only", () => {
     const added = await enrichPhotos(b, { fetchImpl, placesApiKey: "K" });
     expect(added).toBe(1);
     expect(b.images[0]!.startsWith("data:image/jpeg;base64,")).toBe(true);
+  });
+
+  test("works with any provider (Foursquare) — vendor-neutral, not locked to Google", async () => {
+    const fetchImpl = (async (input: string) => {
+      if (input.includes("/search"))
+        return new Response(JSON.stringify({ results: [{ fsq_id: "p" }] }));
+      return new Response(
+        JSON.stringify([{ prefix: "https://fastly.4sqi.net/img/", suffix: "/a.jpg" }]),
+      );
+    }) as unknown as typeof fetch;
+    const b = biz({ address: "Rothschild 40, Tel Aviv" });
+    const added = await enrichPhotos(b, { fetchImpl, provider: foursquareProvider("K") });
+    expect(added).toBe(1);
+    expect(b.images[0]).toBe("https://fastly.4sqi.net/img/original/a.jpg");
   });
 
   test("no sources → stays photoless, never fabricates", async () => {

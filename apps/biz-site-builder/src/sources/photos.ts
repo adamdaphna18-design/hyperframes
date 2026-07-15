@@ -1,6 +1,6 @@
 import type { Business } from "../types.ts";
 import { extractImages, USER_AGENTS } from "./web.ts";
-import { fetchPlacePhotoData, type PlacesOptions } from "./places.ts";
+import { googlePlacesProvider, type PhotoProvider } from "./photo-provider.ts";
 
 /**
  * **Photo enrichment** — fill `business.images` with the business's OWN real
@@ -20,11 +20,13 @@ import { fetchPlacePhotoData, type PlacesOptions } from "./places.ts";
 
 export interface PhotoEnrichOptions {
   fetchImpl?: typeof fetch;
-  /** Google Places API key — enables the no-website photo source. */
+  /** A vendor-neutral photo provider (Google Places / Foursquare / …). */
+  provider?: PhotoProvider;
+  /** Convenience: a Google Places key (wrapped as a provider). Prefer `provider`. */
   placesApiKey?: string;
   /** Max photos to keep. */
   maxPhotos?: number;
-  /** BCP-47 language for Places (e.g. "he"). */
+  /** BCP-47 language for the provider (e.g. "he"). */
   languageCode?: string;
   timeoutMs?: number;
 }
@@ -69,13 +71,15 @@ export async function findRealPhotos(
     if (fromSite.length) return fromSite.slice(0, max);
   }
 
-  // 3) Google Business Profile photos (the no-website case).
-  if (opts.placesApiKey) {
-    const placesOpts: PlacesOptions = { apiKey: opts.placesApiKey, maxPhotos: max };
-    if (opts.fetchImpl) placesOpts.fetchImpl = opts.fetchImpl;
-    if (opts.languageCode) placesOpts.languageCode = opts.languageCode;
-    const fromPlaces = await fetchPlacePhotoData(business, placesOpts);
-    if (fromPlaces.length) return fromPlaces.slice(0, max);
+  // 3) A place-API provider (the no-website case): Google Places, Foursquare, …
+  const provider =
+    opts.provider ?? (opts.placesApiKey ? googlePlacesProvider(opts.placesApiKey) : undefined);
+  if (provider) {
+    const query: Parameters<PhotoProvider["photosFor"]>[1] = { maxPhotos: max };
+    if (opts.fetchImpl) query.fetchImpl = opts.fetchImpl;
+    if (opts.languageCode) query.languageCode = opts.languageCode;
+    const fromProvider = await provider.photosFor(business, query);
+    if (fromProvider.length) return fromProvider.slice(0, max);
   }
 
   return [];

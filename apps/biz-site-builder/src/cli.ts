@@ -12,6 +12,7 @@ import { generateAgencyPage } from "./generate/agency.ts";
 import { carePlanHtml } from "./generate/careplan.ts";
 import { localSeoHtml } from "./generate/localseo.ts";
 import { arbitrageScore, rankByArbitrage, type ArbitrageScore } from "./generate/arbitrage.ts";
+import { resolvePhotoProvider } from "./sources/photo-provider.ts";
 import { scrapeBusiness } from "./sources/web.ts";
 import { outputSlug } from "./generate/util.ts";
 import type { Business } from "./types.ts";
@@ -43,6 +44,8 @@ interface ParsedArgs {
   blog: boolean;
   photos: boolean;
   placesKey?: string;
+  foursquareKey?: string;
+  photoProvider?: string;
   url?: string;
   competitor?: string;
   csv?: string;
@@ -76,6 +79,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     blog: false,
     photos: false,
     placesKey: process.env.GOOGLE_PLACES_API_KEY,
+    foursquareKey: process.env.FOURSQUARE_API_KEY,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -159,6 +163,12 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--places-key":
         if (argv[++i]) args.placesKey = argv[i];
+        break;
+      case "--foursquare-key":
+        if (argv[++i]) args.foursquareKey = argv[i];
+        break;
+      case "--photo-provider":
+        if (argv[++i]) args.photoProvider = argv[i];
         break;
       case "--url":
         if (argv[++i]) args.url = argv[i];
@@ -257,8 +267,10 @@ Options:
       --live-plugins    Augment plugin choices via the WordPress.org plugins API
       --geocode         Geocode addresses missing coordinates via OSM Nominatim (adds a map)
       --geocode-email <e>  Contact string for Nominatim's User-Agent
-      --photos          Fill empty galleries with the business's OWN real photos (existing site → Google Places). Never stock/AI.
-      --places-key <k>  Google Places API key for photos of no-website businesses (or set GOOGLE_PLACES_API_KEY)
+      --photos          Fill empty galleries with the business's OWN real photos (existing site → place API). Never stock/AI.
+      --photo-provider <p>  google | foursquare (default: whichever key is set; Foursquare preferred)
+      --places-key <k>  Google Places API key (or GOOGLE_PLACES_API_KEY) — photos for no-website businesses
+      --foursquare-key <k>  Foursquare Places key (or FOURSQUARE_API_KEY) — cheaper photo alternative
       --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
       --brand <name>    Brand suffix appended to page <title>s
       --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event
@@ -640,7 +652,10 @@ async function main(): Promise<void> {
       geocode: args.geocode,
       geocodeEmail: args.geocodeEmail,
       photos: args.photos,
-      placesApiKey: args.placesKey,
+      photoProvider: resolvePhotoProvider(args.photoProvider, {
+        googlePlaces: args.placesKey,
+        foursquare: args.foursquareKey,
+      }),
       baseUrl: args.baseUrl,
       brand: args.brand,
       analytics:
