@@ -381,11 +381,24 @@ export { runRegistryDemo } from "./examples/mcp-node/registry-run.js";
 export {
   adviseServers,
   classifyDomain,
+  scanTargets,
   type DomainTag,
   type NamedFinding,
   type AdvisorReport,
 } from "./examples/mcp-node/advisor.js";
 export { runNamesDemo } from "./examples/mcp-node/names-run.js";
+export {
+  classifyTool,
+  confirmServer,
+  summarize,
+  toCsv,
+  type ToolKind,
+  type ToolVerdict,
+  type ScanTarget,
+  type ServerConfirmation,
+  type ConfirmationSummary,
+} from "./examples/mcp-node/confirm.js";
+export { runConfirmDemo } from "./examples/mcp-node/confirm-run.js";
 
 // Deep scan: pull a real server's tools/list over the MCP protocol and grade its schemas.
 export {

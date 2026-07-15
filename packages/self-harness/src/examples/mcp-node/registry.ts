@@ -16,6 +16,8 @@ export interface RegistryServer {
   hasRepository: boolean;
   /** Remote transport types declared (e.g. "streamable-http", "sse"); empty if none. */
   remoteTypes: string[];
+  /** Remote endpoint URLs declared (populated on live fetch; the deep scan connects to these). */
+  remoteUrls?: string[];
   /** Count of installable packages (npm/pypi/etc.) declared. */
   packageCount: number;
   status: string;
@@ -141,7 +143,7 @@ interface RawRegistryResponse {
       description?: string;
       version?: string;
       repository?: unknown;
-      remotes?: Array<{ type: string }>;
+      remotes?: Array<{ type: string; url?: string }>;
       packages?: unknown[];
     };
     _meta?: {
@@ -160,6 +162,7 @@ export function mapRegistryEntry(entry: RawRegistryResponse["servers"][number]):
     description: (s.description ?? "").replace(/\s+/g, " ").trim(),
     hasRepository: s.repository !== undefined,
     remoteTypes: (s.remotes ?? []).map((r) => r.type),
+    remoteUrls: (s.remotes ?? []).flatMap((r) => (r.url ? [r.url] : [])),
     packageCount: (s.packages ?? []).length,
     status: meta?.status ?? "unknown",
     isLatest: meta?.isLatest === true,

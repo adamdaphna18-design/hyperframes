@@ -1,3 +1,4 @@
+import type { ScanTarget } from "./confirm.js";
 import { scoreReadiness, type ReadinessRisk, type RegistryServer } from "./registry.js";
 import type { Grade } from "./scorecard.js";
 
@@ -98,4 +99,19 @@ export function adviseServers(servers: RegistryServer[]): AdvisorReport {
     .sort((a, b) => GRADE_RANK[b.grade] - GRADE_RANK[a.grade] || a.server.localeCompare(b.server));
   const highStakes = ranked.filter((f) => f.highStakes);
   return { ranked, highStakes };
+}
+
+/**
+ * Extract the concrete scan targets — the high-stakes servers that expose a real
+ * remote URL — for the confirmation pass. Only servers with a declared endpoint make
+ * it in; a name without a URL can't be connected to, so it isn't a target.
+ */
+export function scanTargets(servers: RegistryServer[]): ScanTarget[] {
+  const highStakesNames = new Set(adviseServers(servers).highStakes.map((f) => f.server));
+  const targets: ScanTarget[] = [];
+  for (const server of servers) {
+    if (!highStakesNames.has(server.name)) continue;
+    for (const url of server.remoteUrls ?? []) targets.push({ server: server.name, url });
+  }
+  return targets;
 }

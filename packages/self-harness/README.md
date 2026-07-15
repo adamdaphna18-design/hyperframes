@@ -739,6 +739,21 @@ the registry; the arg-level double-charge is flagged as a _candidate_ that the d
 `tools/list` scan confirms — the high-stakes list is exactly where that scan is worth
 running.
 
+### Confirming the candidates (the laptop runner)
+
+`confirm.ts` + `confirm-run.ts` (`demo:confirm`) close the loop from an open network:
+they take the high-stakes targets (`scanTargets` extracts each one's real
+`remotes[].url`), connect over the tested streamable-http `McpClient`, and classify
+every tool **strictly from its 2025 annotations** into `candidate` (destructive, no
+idempotency hint), `idempotent-safe`, `read-only`, or — crucially —
+**`unannotated (cannot classify)`**. That fourth bucket is the honesty guarantee:
+absence of a `destructiveHint` is _not_ evidence a tool is safe, so an undeclared tool
+is never counted as safe _or_ as a candidate. The output is an evidence-backed
+`honest_leads.csv` with full coverage accounting (reached / auth-required /
+unreachable), so you can never claim "N vulnerable" for servers you never reached, and
+`candidate` never means `confirmed`. Inside a locked-down network every endpoint is
+unreachable and it says so; from a laptop it produces the real artifact.
+
 ## What makes this different — the gate, benchmarked at scale
 
 Every self-improving / self-healing system on the market shares one acceptance
