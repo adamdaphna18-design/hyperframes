@@ -41,6 +41,8 @@ interface ParsedArgs {
   quotes: boolean;
   includeWeak: boolean;
   blog: boolean;
+  photos: boolean;
+  placesKey?: string;
   url?: string;
   competitor?: string;
   csv?: string;
@@ -72,6 +74,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     quotes: false,
     includeWeak: false,
     blog: false,
+    photos: false,
+    placesKey: process.env.GOOGLE_PLACES_API_KEY,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -149,6 +153,12 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--blog":
         args.blog = true;
+        break;
+      case "--photos":
+        args.photos = true;
+        break;
+      case "--places-key":
+        if (argv[++i]) args.placesKey = argv[i];
         break;
       case "--url":
         if (argv[++i]) args.url = argv[i];
@@ -247,6 +257,8 @@ Options:
       --live-plugins    Augment plugin choices via the WordPress.org plugins API
       --geocode         Geocode addresses missing coordinates via OSM Nominatim (adds a map)
       --geocode-email <e>  Contact string for Nominatim's User-Agent
+      --photos          Fill empty galleries with the business's OWN real photos (existing site → Google Places). Never stock/AI.
+      --places-key <k>  Google Places API key for photos of no-website businesses (or set GOOGLE_PLACES_API_KEY)
       --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
       --brand <name>    Brand suffix appended to page <title>s
       --ga-id <id>      Inject Google Analytics 4 (gtag.js) with a view_item event
@@ -627,6 +639,8 @@ async function main(): Promise<void> {
       livePlugins: args.livePlugins,
       geocode: args.geocode,
       geocodeEmail: args.geocodeEmail,
+      photos: args.photos,
+      placesApiKey: args.placesKey,
       baseUrl: args.baseUrl,
       brand: args.brand,
       analytics:
