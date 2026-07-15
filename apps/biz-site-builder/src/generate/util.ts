@@ -148,9 +148,13 @@ export function taglineFor(business: Business, s: Strings): string {
     if (firstSentence && firstSentence.length <= 90) return firstSentence;
     return business.description.slice(0, 88).trim() + "…";
   }
-  const where =
-    business.address?.split(",").slice(-2, -1)[0]?.trim() ??
-    business.address?.split(",")[0]?.trim();
+  // Prefer the city (last address segment) over the street line for the tagline.
+  const parts =
+    business.address
+      ?.split(",")
+      .map((x) => x.trim())
+      .filter(Boolean) ?? [];
+  const where = parts[parts.length - 1] ?? undefined;
   if (business.category && where) return s.categoryIn(business.category, where);
   if (business.category) return s.localCategory(business.category);
   if (where) return s.proudlyServing(where);

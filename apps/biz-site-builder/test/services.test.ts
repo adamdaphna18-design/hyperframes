@@ -37,12 +37,13 @@ describe("service menus", () => {
 });
 
 describe("services render into both outputs", () => {
-  test("the static site shows the price menu and starter note", () => {
+  test("the static site shows the price menu (no 'sample' tell on the live site)", () => {
     const html = generateSite(biz({ name: "מספרת רוטשילד", category: "מספרה" }), he);
     expect(html).toContain("השירותים שלנו");
     expect(html).toContain("תספורת גבר");
     expect(html).toContain("₪80");
-    expect(html).toContain("מחירון לדוגמה"); // starter-menu note
+    // The public site must NOT advertise that the menu is a template default.
+    expect(html).not.toContain("מחירון לדוגמה");
   });
   test("a photoless site does NOT fake a gallery (no emoji placeholders)", () => {
     const html = generateSite(biz({ name: "Cuts", category: "barber" }), en);

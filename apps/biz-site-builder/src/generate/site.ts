@@ -1,24 +1,14 @@
 import type { Business } from "../types.ts";
 import type { Strings } from "../i18n/strings.ts";
 import { stringsFor } from "../i18n/strings.ts";
-import {
-  bestReview,
-  cssUrl,
-  esc,
-  initials,
-  outputSlug,
-  paletteFor,
-  safeUrl,
-  stars,
-  taglineFor,
-} from "./util.ts";
+import { cssUrl, esc, outputSlug, paletteFor, safeUrl, stars, taglineFor } from "./util.ts";
 import { jsonLdScripts } from "./schema.ts";
 import { hasMap, leafletAssets, leafletMap } from "./map.ts";
 import { headMeta, seoTitle, type MetaContext } from "./meta.ts";
 import { hoursTableHtml, parseOpeningHours } from "./hours.ts";
 import { analyticsSnippet, type AnalyticsOptions } from "./analytics.ts";
 import { chatWidgetSnippet, hasChatWidget, type ChatWidgetOptions } from "./chatwidget.ts";
-import { isStarterMenu, servicesFor } from "./services.ts";
+import { servicesFor } from "./services.ts";
 import { extractKeywords } from "./keywords.ts";
 import { cityOf } from "./meta.ts";
 
@@ -124,12 +114,6 @@ export function generateSite(
   const menuItems = servicesFor(business, s);
   const heading = s.code === "he" ? "השירותים שלנו" : "Our services";
   const priceLabel = s.code === "he" ? "מחיר" : "Price";
-  const starterNote =
-    isStarterMenu(business) && menuItems.length
-      ? s.code === "he"
-        ? '<p class="menu-note">מחירון לדוגמה — קל לעדכן לפי העסק שלכם.</p>'
-        : '<p class="menu-note">Sample price list — easy to tailor to your business.</p>'
-      : "";
   const servicesSection = menuItems.length
     ? `<section class="menu" id="services" aria-label="${esc(heading)}"><div class="wrap">
         <h2>${esc(heading)}</h2>
@@ -142,7 +126,6 @@ export function generateSite(
             )
             .join("\n          ")}
         </ul>
-        ${starterNote}
       </div></section>`
     : "";
 
@@ -181,11 +164,11 @@ export function generateSite(
         background-size: cover; background-position: center;
       }
       .hero .wrap { padding-bottom: 56px; padding-top: 56px; }
-      .badge {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 68px; height: 68px; border-radius: 18px; font-weight: 800; font-size: 26px;
-        background: rgba(255,255,255,.16); backdrop-filter: blur(6px); margin-bottom: 20px;
-        border: 1px solid rgba(255,255,255,.25);
+      .eyebrow {
+        display: inline-block; margin-bottom: 16px; padding: 6px 14px; border-radius: 999px;
+        font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+        background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28);
+        backdrop-filter: blur(6px);
       }
       .hero h1 { font-size: clamp(34px, 6vw, 62px); line-height: 1.05; letter-spacing: -0.02em; }
       .hero .tagline { font-size: clamp(17px, 2.4vw, 22px); margin-top: 14px; max-width: 42ch; opacity: .95; }
@@ -235,9 +218,9 @@ export function generateSite(
   <body>
     <header class="hero">
       <div class="wrap">
-        <div class="badge" aria-hidden="true">${esc(initials(business.name))}</div>
+        ${business.category || city ? `<div class="eyebrow">${esc([business.category, city].filter(Boolean).join(" · "))}</div>` : ""}
         <h1>${esc(business.name)}</h1>
-        <p class="tagline">${esc(tagline)}</p>
+        ${business.description ? `<p class="tagline">${esc(tagline)}</p>` : ""}
         ${business.rating !== undefined ? `<div class="rating">${stars(business.rating)} ${business.rating.toFixed(1)}</div>` : ""}
         <div class="cta-row">
           ${business.phone ? `<a class="btn btn-primary" href="tel:${esc(telHref)}">${esc(s.callUs)}</a>` : ""}
@@ -268,8 +251,8 @@ export function generateSite(
 
     <footer>
       <div class="wrap">
-        <div>© ${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}${opts.blogHref ? ` · <a href="${esc(safeUrl(opts.blogHref))}">${s.code === "he" ? "בלוג" : "Blog"}</a>` : ""}</div>
-        <div class="built">${esc(s.builtBy(!!bestReview(business)))}</div>
+        <div>© ${esc(business.name)}${business.category ? ` · ${esc(business.category)}` : ""}${business.address ? ` · ${esc(business.address)}` : ""}${opts.blogHref ? ` · <a href="${esc(safeUrl(opts.blogHref))}">${s.code === "he" ? "בלוג" : "Blog"}</a>` : ""}</div>
+        ${business.phone ? `<div class="built"><a href="tel:${esc(telHref)}">${esc(business.phone)}</a></div>` : ""}
       </div>
     </footer>
     ${hasChatWidget(opts.chatWidget) ? chatWidgetSnippet(opts.chatWidget, s.dir) : ""}
