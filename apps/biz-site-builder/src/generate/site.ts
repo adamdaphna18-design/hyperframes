@@ -106,9 +106,15 @@ export function generateSite(
     .filter(Boolean)
     .join("\n          ");
 
-  const hero = business.images[0]
-    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${cssUrl(business.images[0])}');`
-    : `background: radial-gradient(120% 120% at 30% 20%, ${p.accentDeep}, #0a0a0f);`;
+  const hasHeroPhoto = Boolean(business.images[0]);
+  // A photoless hero should read as a deliberate, premium brand masthead — not a
+  // gap waiting for an image: layered brand glows + a fine engraved texture.
+  const hero = hasHeroPhoto
+    ? `background-image: linear-gradient(180deg, rgba(0,0,0,.40), rgba(0,0,0,.78)), url('${cssUrl(business.images[0])}'); background-size: cover; background-position: center;`
+    : `background:
+        radial-gradient(1100px 520px at 82% -12%, hsl(${p.hue} 85% 55% / .38), transparent 60%),
+        radial-gradient(820px 460px at 4% 114%, hsl(${p.hue} 72% 42% / .55), transparent 62%),
+        linear-gradient(140deg, #0b0b12 6%, ${p.accentDeep} 155%);`;
 
   // Services / price menu — the business's own, else a trade-appropriate starter.
   const menuItems = servicesFor(business, s);
@@ -159,11 +165,18 @@ export function generateSite(
       a { color: var(--accent-ink); }
       .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
       header.hero {
-        min-height: 62vh; display: flex; align-items: flex-end; color: #fff;
+        min-height: 66vh; display: flex; align-items: flex-end; color: #fff;
+        position: relative; overflow: hidden;
         ${hero}
-        background-size: cover; background-position: center;
       }
-      .hero .wrap { padding-bottom: 56px; padding-top: 56px; }
+      /* Fine engraved texture + a soft floor fade so a photoless masthead reads as designed. */
+      .hero.no-photo::before {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background-image:
+          repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0 1px, transparent 1px 22px),
+          radial-gradient(120% 80% at 50% 120%, rgba(0,0,0,.45), transparent 60%);
+      }
+      .hero .wrap { position: relative; z-index: 1; padding-bottom: 60px; padding-top: 60px; }
       .eyebrow {
         display: inline-block; margin-bottom: 16px; padding: 6px 14px; border-radius: 999px;
         font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
@@ -216,7 +229,7 @@ export function generateSite(
     </style>
   </head>
   <body>
-    <header class="hero">
+    <header class="hero${hasHeroPhoto ? "" : " no-photo"}">
       <div class="wrap">
         ${business.category || city ? `<div class="eyebrow">${esc([business.category, city].filter(Boolean).join(" · "))}</div>` : ""}
         <h1>${esc(business.name)}</h1>
