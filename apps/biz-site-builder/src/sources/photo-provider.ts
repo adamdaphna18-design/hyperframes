@@ -1,6 +1,7 @@
 import type { Business } from "../types.ts";
 import { fetchPlacePhotoData } from "./places.ts";
 import { fetchFoursquarePhotos } from "./foursquare.ts";
+import { fetchMapillaryPhotos } from "./mapillary.ts";
 
 /**
  * **Vendor-neutral photo providers.** The builder is not locked to any one place
@@ -53,7 +54,20 @@ export function foursquareProvider(apiKey: string): PhotoProvider {
   };
 }
 
-export type PhotoProviderName = "google" | "google-places" | "foursquare" | "fsq";
+/** Mapillary — FREE (token) street-level shopfront photos at the coordinates. */
+export function mapillaryProvider(accessToken: string): PhotoProvider {
+  return {
+    name: "mapillary",
+    photosFor(business, opts) {
+      const o: Parameters<typeof fetchMapillaryPhotos>[1] = { accessToken };
+      if (opts.fetchImpl) o.fetchImpl = opts.fetchImpl;
+      if (opts.maxPhotos !== undefined) o.maxPhotos = opts.maxPhotos;
+      return fetchMapillaryPhotos(business, o);
+    },
+  };
+}
+
+export type PhotoProviderName = "google" | "google-places" | "foursquare" | "fsq" | "mapillary";
 
 /**
  * Resolve a provider by name + key. Returns undefined when the name is unknown
@@ -62,7 +76,7 @@ export type PhotoProviderName = "google" | "google-places" | "foursquare" | "fsq
  */
 export function resolvePhotoProvider(
   name: string | undefined,
-  keys: { googlePlaces?: string; foursquare?: string },
+  keys: { googlePlaces?: string; foursquare?: string; mapillary?: string },
 ): PhotoProvider | undefined {
   const n = (name ?? "").trim().toLowerCase();
   if (n === "foursquare" || n === "fsq") {
@@ -70,6 +84,11 @@ export function resolvePhotoProvider(
   }
   if (n === "google" || n === "google-places") {
     return keys.googlePlaces ? googlePlacesProvider(keys.googlePlaces) : undefined;
+  }
+  // Mapillary is free but street-level/approximate — opt-in by name only, never
+  // auto-preferred over a POI-linked source.
+  if (n === "mapillary") {
+    return keys.mapillary ? mapillaryProvider(keys.mapillary) : undefined;
   }
   // No explicit name: prefer whichever key is present (Foursquare first — cheaper).
   if (keys.foursquare) return foursquareProvider(keys.foursquare);

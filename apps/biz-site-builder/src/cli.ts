@@ -45,6 +45,7 @@ interface ParsedArgs {
   photos: boolean;
   placesKey?: string;
   foursquareKey?: string;
+  mapillaryKey?: string;
   photoProvider?: string;
   url?: string;
   competitor?: string;
@@ -80,6 +81,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     photos: false,
     placesKey: process.env.GOOGLE_PLACES_API_KEY,
     foursquareKey: process.env.FOURSQUARE_API_KEY,
+    mapillaryKey: process.env.MAPILLARY_ACCESS_TOKEN,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -166,6 +168,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--foursquare-key":
         if (argv[++i]) args.foursquareKey = argv[i];
+        break;
+      case "--mapillary-key":
+        if (argv[++i]) args.mapillaryKey = argv[i];
         break;
       case "--photo-provider":
         if (argv[++i]) args.photoProvider = argv[i];
@@ -269,7 +274,8 @@ Options:
       --geocode-email <e>  Contact string for Nominatim's User-Agent
       --photos          Fill empty galleries with the business's OWN real photos. FREE by default
                         (existing site + OSM/Wikimedia tags, no key). Never stock/AI.
-      --photo-provider <p>  Optional PAID fallback: google | foursquare (only if a key is set)
+      --photo-provider <p>  Optional fallback: mapillary (free token) | google | foursquare (paid)
+      --mapillary-key <k>  Mapillary token (or MAPILLARY_ACCESS_TOKEN) — FREE street-level; needs coords
       --places-key <k>  Google Places API key (or GOOGLE_PLACES_API_KEY) — optional paid fallback
       --foursquare-key <k>  Foursquare Places key (or FOURSQUARE_API_KEY) — optional paid fallback
       --base-url <url>  Host URL for sitemap.xml / robots.txt / canonical + OG URLs
@@ -656,6 +662,7 @@ async function main(): Promise<void> {
       photoProvider: resolvePhotoProvider(args.photoProvider, {
         googlePlaces: args.placesKey,
         foursquare: args.foursquareKey,
+        mapillary: args.mapillaryKey,
       }),
       baseUrl: args.baseUrl,
       brand: args.brand,
