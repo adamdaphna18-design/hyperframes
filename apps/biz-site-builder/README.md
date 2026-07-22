@@ -14,6 +14,32 @@ ingest (parallel sources) ─▶ detect website + localise ─▶ select ─▶ 
                                                                   └─▶ browsable directory
 ```
 
+## What this is — and what it isn't
+
+Be clear-eyed about scope, so nobody gets oversold.
+
+**It is:** a deterministic generator. Give it business data (a CSV, an OSM area, a
+page to scrape) and it emits **artifacts** — a WordPress deploy bundle, a static
+HTML site, an audit report, a price quote, an SEO blog. Same input → same output,
+no network required at render time, no LLM. That part is real and tested.
+
+**It is not:**
+
+- **Not a lead engine or CRM.** It does not send email/WhatsApp/SMS, run drips,
+  schedule follow-ups, track deals, or "close" anyone. There is no outbound and no
+  stored customer state. Turning artifacts into revenue is manual work it does not do.
+- **Not a photographer.** It uses only the business's **own real photos** — from
+  their existing site, or free OSM/Wikimedia tags, or (opt-in) a place API. If none
+  exist, the site ships photoless (a designed masthead, not a gap). It will **never**
+  invent or substitute stock/AI photos of a business that isn't theirs.
+- **Not a data source.** It builds sites from data you supply. The quality of the
+  output is bounded by the quality of that input.
+- **Not a deployer/host.** It produces a WordPress bundle + WP-CLI script; you run
+  the deploy.
+
+If what you need is a turnkey "find businesses and make money" machine, this is one
+component of that, not the whole thing.
+
 ## Quick start
 
 ```bash
