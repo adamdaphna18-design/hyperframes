@@ -1,0 +1,42 @@
+{
+  "businesses": [
+    {
+      "name": "Rosa's Trattoria",
+      "address": "512 Vine St, Brooklyn, NY",
+      "images": ["https://images.example/rosa-3.jpg"],
+      "reviews": [
+        { "author": "Chris", "rating": 5, "text": "The tiramisu alone is worth the trip." }
+      ]
+    },
+    {
+      "name": "Willow & Wax Candle Co.",
+      "category": "Home Goods",
+      "description": "Hand-poured soy candles made in small batches.",
+      "address": "7 Franklin St, Brooklyn, NY",
+      "phone": "+1 718-555-0123",
+      "website": "",
+      "hours": "Thu–Sun 11–6",
+      "rating": 4.8,
+      "images": [
+        "https://images.example/candle-1.jpg",
+        "https://images.example/candle-2.jpg"
+      ],
+      "reviews": [
+        { "author": "Nina", "rating": 5, "text": "The cedar & sage scent fills the whole apartment." },
+        { "author": "Omar", "rating": 4, "text": "Beautiful packaging, burns clean." }
+      ]
+    },
+    {
+      "name": "Harbor View Yoga",
+      "category": "Yoga Studio",
+      "description": "Vinyasa and restorative classes overlooking the water.",
+      "address": "3 Kent Ave, Brooklyn, NY",
+      "phone": "+1 718-555-0188",
+      "website": "https://instagram.com/harborviewyoga",
+      "rating": 4.9,
+      "reviews": [
+        { "author": "Grace", "rating": 5, "text": "The sunset class changed my week." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "biz-site-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scrape/ingest local business listings, detect which ones lack a website, and auto-build a static site + a hyperframes promo video for each from its profile, images and community reviews.",
+  "bin": {
+    "biz-site-builder": "./src/cli.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "build": "bun run src/cli.ts build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "verify:a11y": "bun run scripts/a11y.ts",
+    "verify:seo": "bun run scripts/seo.ts",
+    "demo": "bun run src/cli.ts build --source csv:fixtures/businesses.sample.csv --source json:fixtures/businesses.sample.json --source registry:file=fixtures/registry.sample.json --out .out --target both --video --quotes",
+    "demo:registry": "bun run src/cli.ts build --source registry:file=fixtures/registry.sample.json --market israel --out .out-registry --target both --quotes"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "axe-core": "^4.10.0",
+    "playwright": "^1.61.0",
+    "typescript": "^5.0.0"
+  }
+}

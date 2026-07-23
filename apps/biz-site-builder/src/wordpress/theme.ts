@@ -1,0 +1,205 @@
+import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
+import { esc, paletteFor, slugify } from "../generate/util.ts";
+import { homePage } from "./blocks.ts";
+
+/**
+ * Generate a minimal WordPress **block child theme** for a business, derived
+ * from a base theme (default: Twenty Twenty-Four). It carries a `theme.json`
+ * palette built from the business's colours and a `front-page.html` template
+ * with the same block markup used in the WXR import, so the site looks right the
+ * moment the theme is active — before any content import.
+ */
+export interface ThemeFile {
+  path: string;
+  content: string;
+}
+
+export function themeSlug(business: Business): string {
+  return `${slugify(business.name)}-theme`;
+}
+
+export function generateTheme(
+  business: Business,
+  s: Strings,
+  baseTheme = "twentytwentyfour",
+): ThemeFile[] {
+  const p = paletteFor(business);
+  const slug = themeSlug(business);
+
+  const styleCss = `/*
+Theme Name: ${business.name} Theme
+Theme URI:
+Description: Auto-generated block child theme for ${business.name}, built by biz-site-builder.
+Template: ${baseTheme}
+Version: 1.0.0
+Text Domain: ${slug}
+${s.dir === "rtl" ? "Tags: rtl-language-support\n" : ""}*/
+`;
+
+  const themeJson = JSON.stringify(
+    {
+      $schema: "https://schemas.wp.org/trunk/theme.json",
+      version: 2,
+      settings: {
+        appearanceTools: true,
+        color: {
+          palette: [
+            { slug: "accent", name: "Accent", color: hslToHex(p.hue, 82, 56) },
+            { slug: "accent-deep", name: "Accent Deep", color: hslToHex(p.hue, 74, 42) },
+            { slug: "ink", name: "Ink", color: p.ink },
+            { slug: "surface", name: "Surface", color: "#ffffff" },
+            { slug: "white", name: "White", color: "#ffffff" },
+          ],
+        },
+        typography: { fluid: true },
+        layout: { contentSize: "760px", wideSize: "1140px" },
+      },
+      templateParts: [
+        { name: "header", title: "Header", area: "header" },
+        { name: "footer", title: "Footer", area: "footer" },
+      ],
+      styles: {
+        color: {
+          background: "var(--wp--preset--color--surface)",
+          text: "var(--wp--preset--color--ink)",
+        },
+        elements: {
+          button: {
+            color: {
+              background: "var(--wp--preset--color--accent)",
+              text: "var(--wp--preset--color--white)",
+            },
+          },
+          link: { color: { text: "var(--wp--preset--color--accent-deep)" } },
+        },
+      },
+    },
+    null,
+    2,
+  );
+
+  const frontPage = `<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->
+<main class="wp-block-group">
+${homePage(business, s)}
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->`;
+
+  const files: ThemeFile[] = [
+    { path: `theme/${slug}/style.css`, content: styleCss },
+    { path: `theme/${slug}/theme.json`, content: themeJson + "\n" },
+    { path: `theme/${slug}/templates/front-page.html`, content: frontPage + "\n" },
+    { path: `theme/${slug}/parts/header.html`, content: headerPart(business, s) + "\n" },
+    { path: `theme/${slug}/parts/footer.html`, content: footerPart(business, s) + "\n" },
+  ];
+  // When the business has coordinates, ship a functions.php that registers the
+  // [bsb_map] shortcode and enqueues Leaflet + OpenStreetMap on demand.
+  if (business.location) {
+    files.push({ path: `theme/${slug}/functions.php`, content: mapFunctionsPhp() });
+  }
+  return files;
+}
+
+/**
+ * A classic top navigation bar: site title on one side, an auto page menu + a
+ * Blog link on the other — the conventional "2015 business site" header. Dark
+ * bar, restrained, no flashy hero. Block markup for a block-theme template part.
+ */
+function headerPart(business: Business, s: Strings): string {
+  const blog = s.code === "he" ? "בלוג" : "Blog";
+  return `<!-- wp:group {"tagName":"header","align":"full","backgroundColor":"ink","layout":{"type":"constrained"}} -->
+<header class="wp-block-group alignfull has-ink-background-color has-background" style="padding-top:14px;padding-bottom:14px">
+  <!-- wp:group {"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between"}} -->
+  <div class="wp-block-group">
+    <!-- wp:site-title {"level":0,"textColor":"white"} /-->
+    <!-- wp:navigation {"textColor":"white","layout":{"type":"flex","flexWrap":"wrap"}} -->
+      <!-- wp:page-list /-->
+      <!-- wp:navigation-link {"label":"${esc(blog)}","url":"/?post_type=post","kind":"custom"} /-->
+    <!-- /wp:navigation -->
+  </div>
+  <!-- /wp:group -->
+</header>
+<!-- /wp:group -->`;
+}
+
+/** A conventional footer: business name, phone, address, copyright. */
+function footerPart(business: Business, s: Strings): string {
+  const bits = [business.name, business.phone, business.address]
+    .filter(Boolean)
+    .map(esc)
+    .join(" · ");
+  const rights = s.code === "he" ? "כל הזכויות שמורות" : "All rights reserved";
+  return `<!-- wp:group {"tagName":"footer","align":"full","backgroundColor":"ink","layout":{"type":"constrained"}} -->
+<footer class="wp-block-group alignfull has-ink-background-color has-background" style="padding-top:28px;padding-bottom:28px">
+  <!-- wp:paragraph {"align":"center","textColor":"white"} -->
+  <p class="has-text-align-center has-white-color has-text-color">${bits}</p>
+  <!-- /wp:paragraph -->
+  <!-- wp:paragraph {"align":"center","textColor":"white","fontSize":"small"} -->
+  <p class="has-text-align-center has-white-color has-text-color has-small-font-size">© ${esc(business.name)} · ${rights}</p>
+  <!-- /wp:paragraph -->
+</footer>
+<!-- /wp:group -->`;
+}
+
+function mapFunctionsPhp(): string {
+  return `<?php
+/**
+ * Registers the [bsb_map lat lon label] shortcode backed by Leaflet +
+ * OpenStreetMap tiles (no API key). Generated by biz-site-builder.
+ */
+add_action('wp_enqueue_scripts', function () {
+    wp_register_style('leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4');
+    wp_register_script('leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true);
+});
+
+add_shortcode('bsb_map', function ($atts) {
+    $a = shortcode_atts(array('lat' => '0', 'lon' => '0', 'label' => ''), $atts);
+    wp_enqueue_style('leaflet');
+    wp_enqueue_script('leaflet');
+    $id = 'bsb-map-' . wp_rand();
+    $lat = floatval($a['lat']);
+    $lon = floatval($a['lon']);
+    ob_start(); ?>
+    <div id="<?php echo esc_attr($id); ?>" style="height:360px;width:100%;border-radius:16px;overflow:hidden"></div>
+    <script>
+    (function () {
+      if (typeof L === 'undefined') return;
+      var map = L.map(<?php echo wp_json_encode($id); ?>).setView([<?php echo $lat; ?>, <?php echo $lon; ?>], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      L.marker([<?php echo $lat; ?>, <?php echo $lon; ?>]).addTo(map).bindPopup(<?php echo wp_json_encode($a['label']); ?>);
+    })();
+    </script>
+    <?php return ob_get_clean();
+});
+`;
+}
+
+/** Minimal HSL→hex for theme.json (deterministic, no rounding surprises). */
+function hslToHex(h: number, s: number, l: number): string {
+  const sN = s / 100;
+  const lN = l / 100;
+  const c = (1 - Math.abs(2 * lN - 1)) * sN;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = lN - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const to = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}

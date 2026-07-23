@@ -1,0 +1,175 @@
+import type { Business } from "../types.ts";
+import type { Strings } from "../i18n/strings.ts";
+import { slugify } from "../sources/normalize.ts";
+import { optimalInk } from "./optimize.ts";
+
+export { slugify };
+
+/** Escape text for safe interpolation into HTML element content/attributes. */
+export function esc(input: string | undefined | null): string {
+  if (input === undefined || input === null) return "";
+  return String(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Neutralise a URL for use in an `href`/`src`: scraped business data can carry a
+ * `javascript:` (or other active) scheme that `esc()` does NOT stop — esc only
+ * handles quotes/brackets, so `href="javascript:…"` would still execute on click.
+ * Relative paths and anchors (no scheme) pass through; an absolute URL must use an
+ * allowed scheme or it collapses to `#`. Control chars (which browsers strip from
+ * schemes — `jav\tascript:`) are removed before the check. Wrap the result in
+ * `esc()` too, for the surrounding attribute quotes.
+ */
+export function safeUrl(
+  input: string | undefined | null,
+  opts: { allowData?: boolean } = {},
+): string {
+  // Strip ASCII control chars (browsers ignore them inside a scheme, e.g. "jav\tascript:").
+  const url = String(input ?? "")
+    .trim()
+    // eslint-disable-next-line no-control-regex -- intentional: strip URL-scheme obfuscation
+    .replace(/[\u0000-\u001f]/g, "");
+  if (!url) return "";
+  const scheme = url.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+  if (!scheme) return url; // relative / anchor / query — no scheme to abuse
+  const allowed = new Set(["http", "https", "mailto", "tel", ...(opts.allowData ? ["data"] : [])]);
+  return allowed.has(scheme) ? url : "#";
+}
+
+/**
+ * A URL safe to drop inside a CSS `url('…')`: scheme-checked like `safeUrl`, then
+ * quotes / parens / backslash / whitespace percent-encoded so it can't break out
+ * of the `url()` in either a `<style>` block or an inline `style="…"` attribute
+ * (where the browser decodes HTML entities before the CSS parser runs).
+ */
+export function cssUrl(input: string | undefined | null): string {
+  return safeUrl(input, { allowData: true }).replace(
+    /["'()\\\s]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`,
+  );
+}
+
+/** Escape a string for embedding inside a single-quoted JS string literal. */
+export function jsStr(input: string | undefined | null): string {
+  if (input === undefined || input === null) return "";
+  return String(input)
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "")
+    .replace(/</g, "\\u003c");
+}
+
+/** Deterministic 32-bit hash (FNV-1a) — used for stable per-business palettes. */
+export function hash(str: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+export interface Palette {
+  hue: number;
+  accent: string;
+  accentDeep: string;
+  /** Darkened accent guaranteed to meet WCAG AA (4.5:1) on a white background,
+   *  for text/links/icons — low lightness so even bright hues stay legible. */
+  accentInk: string;
+  ink: string;
+  bg: string;
+  surface: string;
+}
+
+/** Hue (0–359) of a `#rrggbb` hex, or undefined if unparseable. */
+export function hueOfHex(hex: string | undefined): number | undefined {
+  const m = (hex ?? "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return undefined;
+  const r = parseInt(m[1]!.slice(0, 2), 16) / 255;
+  const g = parseInt(m[1]!.slice(2, 4), 16) / 255;
+  const b = parseInt(m[1]!.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return undefined; // grey — no meaningful hue
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return Math.round((((h * 60) % 360) + 360) % 360);
+}
+
+/**
+ * A stable, tasteful palette. When the business carries a cloned brand colour,
+ * the palette is anchored to *its* hue (so a cloned site keeps its identity);
+ * otherwise the hue is derived deterministically from the business name.
+ */
+export function paletteFor(business: Business): Palette {
+  const hue = hueOfHex(business.brandColor) ?? hash(business.name) % 360;
+  return {
+    hue,
+    accent: `hsl(${hue} 82% 56%)`,
+    accentDeep: `hsl(${hue} 74% 42%)`,
+    // Most vivid link/text ink that still clears WCAG AA on --bg — searched, not
+    // guessed (see optimize.ts). Replaces the old hand-fixed `25%` lightness.
+    accentInk: optimalInk(hue),
+    ink: "#12141a",
+    bg: `hsl(${hue} 30% 97%)`,
+    surface: "#ffffff",
+  };
+}
+
+/**
+ * A clean, collision-resistant output slug: the business name plus a short
+ * stable hash of its id (so two "Joe's Pizza" don't overwrite each other).
+ */
+export function outputSlug(business: Business): string {
+  const suffix = hash(business.id).toString(36).slice(0, 6);
+  return `${slugify(business.name)}-${suffix}`;
+}
+
+export function initials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  const letters =
+    (words[0]?.[0] ?? "") + (words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "");
+  return letters.toUpperCase() || "•";
+}
+
+/** A short marketing tagline derived from available profile fields, localised. */
+export function taglineFor(business: Business, s: Strings): string {
+  if (business.description) {
+    const firstSentence = business.description.split(/(?<=[.!?])\s/)[0]?.trim();
+    if (firstSentence && firstSentence.length <= 90) return firstSentence;
+    return business.description.slice(0, 88).trim() + "…";
+  }
+  // Prefer the city (last address segment) over the street line for the tagline.
+  const parts =
+    business.address
+      ?.split(",")
+      .map((x) => x.trim())
+      .filter(Boolean) ?? [];
+  const where = parts[parts.length - 1] ?? undefined;
+  if (business.category && where) return s.categoryIn(business.category, where);
+  if (business.category) return s.localCategory(business.category);
+  if (where) return s.proudlyServing(where);
+  return s.nowOpen;
+}
+
+export function bestReview(business: Business) {
+  if (!business.reviews.length) return undefined;
+  return [...business.reviews].sort(
+    (a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.text.length - a.text.length,
+  )[0];
+}
+
+export function stars(rating: number | undefined): string {
+  if (rating === undefined) return "";
+  const full = Math.round(rating);
+  return "★★★★★☆☆☆☆☆".slice(5 - full, 10 - full);
+}
