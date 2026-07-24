@@ -400,6 +400,20 @@ export {
 } from "./examples/mcp-node/confirm.js";
 export { runConfirmDemo } from "./examples/mcp-node/confirm-run.js";
 
+// The hybrid runtime gate: one pre-commit veto for both the MCP double-charge (retried
+// destructive effect) and the runtime breakout (off-allowlist egress / runaway volume).
+export {
+  evaluateAction,
+  guardAction,
+  newActionContext,
+  type GuardedAction,
+  type ActionPolicy,
+  type ActionContext,
+  type ActionDecision,
+  type GuardOutcome,
+} from "./examples/mcp-node/action-gate.js";
+export { runGateDemo } from "./examples/mcp-node/gate-run.js";
+
 // Deep scan: pull a real server's tools/list over the MCP protocol and grade its schemas.
 export {
   McpClient,

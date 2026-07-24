@@ -754,6 +754,41 @@ unreachable), so you can never claim "N vulnerable" for servers you never reache
 `candidate` never means `confirmed`. Inside a locked-down network every endpoint is
 unreachable and it says so; from a laptop it produces the real artifact.
 
+### The hybrid runtime gate — one primitive, both failures
+
+The offline gate proves the principle; `action-gate.ts` relocates it to **runtime, per
+action**, and it turns out the same primitive covers the two failures this project keeps
+circling. Before any action commits, one question: does it violate a protected invariant?
+If so, veto — by policy, below the agent, which can't reason past it.
+
+- **Reliability (the MCP double-charge):** a _retried_ non-idempotent write is vetoed as a
+  duplicate effect (the effect id already committed), so a timeout+retry can't charge twice.
+- **Containment (the OpenAI/Hugging Face breakout):** an action that reaches a host off the
+  allowlist, or exceeds the volume cap, is vetoed no matter how good the agent's goal
+  looked — the enforcement is a policy check, not a prompt the model can rationalize past.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:gate
+```
+
+```
+  ✓ allowed  read a record
+  ✓ allowed  charge a customer (first time)
+  ✗ vetoed   RETRY the same charge after a timeout  [duplicate-effect]
+  ✗ vetoed   escape to an off-allowlist host to 'win the task'  [egress-allowlist]
+real charges executed: 1 (the retry was stopped — no double-charge)
+sandbox escapes executed: 0 (egress to the off-allowlist host was denied)
+```
+
+`guardAction` records a committed effect only _after_ it succeeds, so a genuinely failed
+call can still be retried while a succeeded one can't be double-executed — the gate, not the
+tool, is what stops the second charge. Honest scope: this is the enforcement _primitive_
+(the pre-commit veto), not a full containment platform — the egress boundary, rate limiter,
+and audit log around it are standard security infra. But the primitive is the piece the
+[OpenAI incident](https://modelcontextprotocol.io) showed was missing: a guardrail that
+runs, checks reality, and denies — instead of one the model "understood and didn't care"
+about.
+
 ## What makes this different — the gate, benchmarked at scale
 
 Every self-improving / self-healing system on the market shares one acceptance
