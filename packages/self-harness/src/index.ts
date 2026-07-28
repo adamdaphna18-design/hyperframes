@@ -405,11 +405,16 @@ export { runConfirmDemo } from "./examples/mcp-node/confirm-run.js";
 export {
   evaluateAction,
   guardAction,
+  isDestructive,
   newActionContext,
-  type GuardedAction,
-  type ActionPolicy,
+  reconcileEffect,
   type ActionContext,
   type ActionDecision,
+  type ActionPolicy,
+  type AuditEntry,
+  type DenyRule,
+  type EffectState,
+  type GuardedAction,
   type GuardOutcome,
 } from "./examples/mcp-node/action-gate.js";
 export { runGateDemo } from "./examples/mcp-node/gate-run.js";
