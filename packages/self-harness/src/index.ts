@@ -419,6 +419,30 @@ export {
 } from "./examples/mcp-node/action-gate.js";
 export { runGateDemo } from "./examples/mcp-node/gate-run.js";
 
+// The self-tightening gate: a containment policy that learns to close its own holes
+// from the agent's attack attempts, dual-gated so it regresses neither safety
+// (a blocked attack stays blocked) nor utility (a served legit call stays served).
+export {
+  applyEdit,
+  dualGate,
+  learnPolicy,
+  policyAllows,
+  proposeTightenings,
+  scorePolicy,
+  type Candidate,
+  type DualDecision,
+  type LabeledAction,
+  type LearnResult,
+  type LearnRound,
+  type PolicyEdit,
+  type PolicyScorecard,
+} from "./examples/mcp-node/learning-gate.js";
+export {
+  INITIAL_POLICY,
+  buildLearningCorpus,
+  runLearnDemo,
+} from "./examples/mcp-node/learn-run.js";
+
 // Deep scan: pull a real server's tools/list over the MCP protocol and grade its schemas.
 export {
   McpClient,

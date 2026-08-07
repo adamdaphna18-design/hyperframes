@@ -59,6 +59,7 @@
     "demo:names": "tsx src/examples/mcp-node/names-run.ts",
     "demo:confirm": "tsx src/examples/mcp-node/confirm-run.ts",
     "demo:gate": "tsx src/examples/mcp-node/gate-run.ts",
+    "demo:learn": "tsx src/examples/mcp-node/learn-run.ts",
     "demo:deep": "tsx src/examples/mcp-node/deep-scan-run.ts",
     "demo:benchmark": "tsx src/benchmark/run.ts",
     "test": "vitest run",

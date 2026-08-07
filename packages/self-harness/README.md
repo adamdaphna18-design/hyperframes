@@ -789,6 +789,44 @@ and audit log around it are standard security infra. But the primitive is the pi
 runs, checks reality, and denies — instead of one the model "understood and didn't care"
 about.
 
+### The self-tightening gate — a policy that learns to contain itself
+
+The offline loop learns a _harness_ under one protected set (tasks that pass must keep
+passing). The runtime gate above enforces a _fixed_ policy. `learning-gate.ts` fuses them:
+a containment policy that **learns to close its own holes from the agent's own attack
+attempts** — and the acceptance test is the same regression gate, now over **two protected
+sets in tension**:
+
+- **Safety monotonicity** — an attack the policy already blocks stays blocked. The loop can
+  only ever close holes, never re-open one.
+- **Utility non-regression** — a legitimate call the policy already serves stays served.
+  Tightening is never allowed to start blocking real traffic.
+
+A proposed tightening is committed only if it closes ≥1 open hole while regressing
+_neither_ axis. That's what makes an aggressive fix self-correcting: cutting the whole
+`payments.internal` host _would_ close the unauthenticated-charge hole — but it also blocks
+the legitimate charge, so the utility axis vetoes it, and the loop falls through to the
+clean fix (require an idempotency key + mark the tool destructive) that closes the hole
+with zero collateral.
+
+```bash
+bun run --filter @hyperframes/self-harness demo:learn
+```
+
+```
+start: 4/4 legit served, 3/5 attacks blocked (holes still open: charge-nokey, undeclared)
+  hole 'charge-nokey'  →  learned: require idempotency + mark 'payments.charge' destructive   [served 4 · blocked 4]
+  hole 'undeclared'    →  learned: deny undeclared hosts                                       [served 4 · blocked 5]
+end: 4 legit served, 5 attacks blocked, 0 holes open — all holes closed.
+```
+
+Nothing is ever un-learned: `served` and `blocked` only ever rise across rounds, and the
+demo _asserts_ that dual-monotone property rather than just printing it. The output is the
+tightest policy that blocks every seen attack and permits every legitimate call, discovered
+automatically. Honest scope: it tightens against the attacks in its corpus — it closes the
+holes you've _seen_, not holes you haven't; the guarantee is "no regression on either axis,"
+not "provably complete containment."
+
 ## What makes this different — the gate, benchmarked at scale
 
 Every self-improving / self-healing system on the market shares one acceptance
